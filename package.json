@@ -1,20 +1,36 @@
 {
   "name": "website",
   "version": "1.0.0",
-  "description": "",
+  "description": "Aquí se alojará todo lo relacionado a la BD de una granja avícola de gallinas ponedoras",
   "main": "index.js",
-  "scripts": {
-    "start": "node src/app.js",
-    "dev": "node --watch src/app.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+"scripts": {
+  "start": "node src/server.js",
+  "dev": "node --watch src/server.js",
+  "test": "echo \"Error: no test specified\" && exit 1"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
     "dotenv": "^18.0.9",
     "express": "^5.3.0",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.12.1",
     "mysql2": "^3.24.6"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Xplod883/Proyecto-Base-de-datos-Granja-Gallinas-ponedoras.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Xplod883/Proyecto-Base-de-datos-Granja-Gallinas-ponedoras/issues"
+  },
+  "homepage": "https://github.com/Xplod883/Proyecto-Base-de-datos-Granja-Gallinas-ponedoras#readme",
+  "devDependencies": {
+    "nodemon": "^3.1.14"
   }
 }
