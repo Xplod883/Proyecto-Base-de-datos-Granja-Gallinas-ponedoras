@@ -8,14 +8,41 @@ const {
   verificarConexion
 } = require("./config/database");
 
+const galponRoutes = require("./routes/galpon.routes");
+
+const {
+  manejarRutaNoEncontrada,
+  manejarErrores
+} = require("./middlewares/error.middleware");
+
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
+/*
+|--------------------------------------------------------------------------
+| Middlewares generales
+|--------------------------------------------------------------------------
+*/
+
 app.use(express.json());
 
-app.use(express.urlencoded({ extended: true }));
+app.use(
+  express.urlencoded({
+    extended: true
+  })
+);
 
-app.use(express.static(path.join(__dirname, "../public")));
+app.use(
+  express.static(
+    path.join(__dirname, "../public")
+  )
+);
+
+/*
+|--------------------------------------------------------------------------
+| Rutas de verificación
+|--------------------------------------------------------------------------
+*/
 
 app.get("/api/verificar", (req, res) => {
   res.status(200).json({
@@ -40,7 +67,10 @@ app.get("/api/base-datos/verificar", async (req, res) => {
       conexion: resultado[0]
     });
   } catch (error) {
-    console.error("Error en /api/base-datos/verificar:", error);
+    console.error(
+      "Error en /api/base-datos/verificar:",
+      error
+    );
 
     res.status(500).json({
       correcto: false,
@@ -50,44 +80,41 @@ app.get("/api/base-datos/verificar", async (req, res) => {
   }
 });
 
-app.get("/api/base-datos/galpones", async (req, res) => {
-  try {
-    const [galpones] = await pool.execute(`
-      SELECT
-        idGalpon,
-        nombre_galpon,
-        capacidad_maxima,
-        sector,
-        sub_sector,
-        idTipoManejo
-      FROM galpon
-      ORDER BY idGalpon
-      LIMIT 10
-    `);
+/*
+|--------------------------------------------------------------------------
+| Rutas operativas
+|--------------------------------------------------------------------------
+*/
 
-    res.status(200).json({
-      correcto: true,
-      mensaje: "Galpones obtenidos correctamente",
-      total_mostrado: galpones.length,
-      datos: galpones
-    });
-  } catch (error) {
-    console.error("Error al consultar galpones:", error);
+app.use("/api/galpones", galponRoutes);
 
-    res.status(500).json({
-      correcto: false,
-      mensaje: "No fue posible consultar los galpones",
-      codigo: error.code || "ERROR_DESCONOCIDO"
-    });
-  }
-});
+/*
+|--------------------------------------------------------------------------
+| Manejo de rutas inexistentes
+|--------------------------------------------------------------------------
+|
+| Estos middlewares deben colocarse después de todas las rutas.
+|
+*/
 
-app.use("/api", (req, res) => {
-  res.status(404).json({
-    correcto: false,
-    mensaje: "La ruta solicitada no existe"
-  });
-});
+app.use(manejarRutaNoEncontrada);
+
+/*
+|--------------------------------------------------------------------------
+| Manejo centralizado de errores
+|--------------------------------------------------------------------------
+|
+| Este middleware debe ser el último app.use() del proyecto.
+|
+*/
+
+app.use(manejarErrores);
+
+/*
+|--------------------------------------------------------------------------
+| Inicio del servidor
+|--------------------------------------------------------------------------
+*/
 
 async function iniciarServidor() {
   try {
@@ -105,17 +132,26 @@ async function iniciarServidor() {
       console.log("Sistema Granja de Gallinas");
       console.log(`Servidor: http://localhost:${PORT}`);
       console.log(
-        `MySQL: http://localhost:${PORT}/api/base-datos/verificar`
+        `Verificación API: http://localhost:${PORT}/api/verificar`
       );
       console.log(
-        `Galpones: http://localhost:${PORT}/api/base-datos/galpones`
+        `Verificación MySQL: http://localhost:${PORT}/api/base-datos/verificar`
+      );
+      console.log(
+        `API Galpones: http://localhost:${PORT}/api/galpones`
       );
       console.log("-------------------------------------------");
     });
   } catch (error) {
     console.error("-------------------------------------------");
     console.error("El servidor web no se inició.");
-    console.error("Primero debe existir una conexión correcta con MySQL.");
+    console.error(
+      "Primero debe existir una conexión correcta con MySQL."
+    );
+    console.error(
+      "Detalle:",
+      error.message
+    );
     console.error("-------------------------------------------");
 
     process.exit(1);
