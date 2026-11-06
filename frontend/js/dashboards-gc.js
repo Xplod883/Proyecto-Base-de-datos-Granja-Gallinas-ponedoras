@@ -1,10 +1,11 @@
-// js/dashboards-gc.js - Google Charts (Dashboards 1, 2 y 3) + Paginación y Filtros
+// frontend/js/dashboards-gc.js - Google Charts (Dashboards 1, 2 y 3) + Paginación y Filtros
 google.charts.load('current', {'packages':['corechart', 'bar', 'line']});
 
 let dashboardActual = 1;
 let paginaActual = 1;
 const filasPorPagina = 5;
 
+let backendConectado = false;
 let datosRaw = [];
 let datosFiltrados = [];
 let columnasActuales = [];
@@ -27,6 +28,19 @@ function cambiarDashboard(id) {
   consultarBackend(id);
 }
 
+// Bloquea o desbloquea los inputs de filtro según el estado de la conexión
+function toggleFiltros(habilitar) {
+  const busqueda = document.getElementById("filtro-busqueda");
+  const galpon = document.getElementById("filtro-galpon");
+  const fecha = document.getElementById("filtro-fecha");
+  const btnReset = document.querySelector(".btn-reset");
+
+  if (busqueda) busqueda.disabled = !habilitar;
+  if (galpon) galpon.disabled = !habilitar;
+  if (fecha) fecha.disabled = !habilitar;
+  if (btnReset) btnReset.disabled = !habilitar;
+}
+
 async function consultarBackend(id) {
   const chartCanvas = document.getElementById("chart-canvas");
   const tbody = document.getElementById("tabla-body");
@@ -34,7 +48,8 @@ async function consultarBackend(id) {
   const statusDot = document.querySelector(".status-dot");
   const statusText = document.getElementById("status-text");
 
-  // Estado de carga inicial
+  toggleFiltros(false);
+
   chartCanvas.innerHTML = `<div style="display:flex; justify-content:center; align-items:center; height:350px; color:#64748b;">🔄 Conectando con API...</div>`;
   tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:20px; color:#64748b;">Consultando registros...</td></tr>`;
 
@@ -53,20 +68,27 @@ async function consultarBackend(id) {
 
     datosRaw = await res.json();
     datosFiltrados = [...datosRaw];
+    backendConectado = true;
 
-    statusDot.className = "status-dot online";
-    statusText.innerText = "Base de Datos Conectada";
+    if (statusDot) statusDot.className = "status-dot online";
+    if (statusText) statusText.innerText = "Base de Datos Conectada";
 
     if (!datosRaw || datosRaw.length === 0) {
       mostrarEstadoVacio("No hay registros disponibles en la base de datos para este tablero.");
       return;
     }
 
+    toggleFiltros(true);
     renderizarDashboard(id);
 
   } catch (error) {
-    statusDot.className = "status-dot offline";
-    statusText.innerText = "Sin conexión al Backend";
+    backendConectado = false;
+    datosRaw = [];
+    datosFiltrados = [];
+    toggleFiltros(false);
+
+    if (statusDot) statusDot.className = "status-dot offline";
+    if (statusText) statusText.innerText = "Sin conexión al Backend";
     mostrarEstadoError(`Esperando que el backend esté encendido en: ${mapEndpoints[id]}`);
   }
 }
@@ -257,6 +279,10 @@ function dibujarGraficoGoogle3(datos) {
 
 /* Filtros y Paginación */
 function aplicarFiltros() {
+  if (!backendConectado || !datosRaw || datosRaw.length === 0) {
+    return;
+  }
+
   const busqueda = document.getElementById("filtro-busqueda").value.toLowerCase();
   const galpon = document.getElementById("filtro-galpon").value;
   const fecha = document.getElementById("filtro-fecha").value;
@@ -295,6 +321,11 @@ function resetearFiltros(recargar = true) {
   document.getElementById("filtro-busqueda").value = "";
   document.getElementById("filtro-galpon").value = "todos";
   document.getElementById("filtro-fecha").value = "todas";
+
+  if (!backendConectado || !datosRaw || datosRaw.length === 0) {
+    return;
+  }
+
   if (recargar) {
     datosFiltrados = [...datosRaw];
     renderizarDashboard(dashboardActual);
