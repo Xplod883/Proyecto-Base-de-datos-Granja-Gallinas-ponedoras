@@ -15,6 +15,11 @@ app.use(express.json());
 
 app.use(express.urlencoded({ extended: true }));
 
+app.use(
+  "/api/monitoreo-temperatura",
+  require("./routes/monitoreo.routes")
+);
+
 app.use(express.static(path.join(__dirname, "../public")));
 
 app.get("/api/verificar", (req, res) => {
