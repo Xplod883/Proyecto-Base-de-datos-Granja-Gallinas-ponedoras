@@ -31,11 +31,26 @@ async function eliminarMonitoreo(id){
     return await monitoreoRepository.eliminarMonitoreo(id);
 }
 
+async function obtenerResumenTemperatura(){
+    return await monitoreoRepository.obtenerResumenTemperatura();
+}
+
+async function obtenerTemperaturaPorFecha(){
+    return await monitoreoRepository.obtenerTemperaturaPorFecha();
+}
+
+async function obtenerAlertas(){
+    return await monitoreoRepository.obtenerAlertas();
+}
+
 module.exports = {
   obtenerTodos,
   crearMonitoreo,
   obtenerPorId,
   actualizarMonitoreo,
   obtenerTemperaturaPromedio,
-  eliminarMonitoreo
+  eliminarMonitoreo,
+  obtenerResumenTemperatura,
+  obtenerTemperaturaPorFecha,
+  obtenerAlertas
 };

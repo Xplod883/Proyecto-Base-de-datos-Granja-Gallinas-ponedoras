@@ -103,6 +103,57 @@ async function eliminarMonitoreo(id){
     return resultado.affectedRows;
 }
 
+async function obtenerResumenTemperatura(){
+
+    const sql = `
+    SELECT
+        ROUND(AVG(temperatura_c),2) AS promedio,
+        MIN(temperatura_c) AS minima,
+        MAX(temperatura_c) AS maxima,
+        COUNT(*) AS totalRegistros,
+        SUM(dentro_de_rango) AS dentroRango,
+        COUNT(*) - SUM(dentro_de_rango) AS fueraRango
+    FROM monitoreo_temperatura_bodega
+    `;
+
+    const [rows] = await pool.execute(sql);
+
+    return rows[0];
+
+}
+
+async function obtenerTemperaturaPorFecha(){
+
+    const sql = `
+    SELECT
+        DATE(fecha_hora) AS fecha,
+        ROUND(AVG(temperatura_c),2) AS temperaturaPromedio,
+        MIN(temperatura_c) AS temperaturaMinima,
+        MAX(temperatura_c) AS temperaturaMaxima,
+        COUNT(*) AS totalLecturas
+    FROM monitoreo_temperatura_bodega
+    GROUP BY DATE(fecha_hora) ORDER BY fecha
+    `;
+
+    const [rows] = await pool.execute(sql);
+
+    return rows;
+}
+
+async function obtenerAlertas(){
+
+    const sql = `
+    SELECT
+        COUNT(*) AS totalAlertas
+    FROM monitoreo_temperatura_bodega
+    WHERE dentro_de_rango = 0
+    `;
+
+    const [rows] = await pool.execute(sql);
+
+    return rows[0];
+}
+
 
 module.exports = {
   obtenerTodos,
@@ -110,5 +161,7 @@ module.exports = {
   obtenerPorId,
   actualizarMonitoreo,
   obtenerTemperaturaPromedio,
-  eliminarMonitoreo
+  eliminarMonitoreo,
+  obtenerResumenTemperatura,
+  obtenerAlertas
 };

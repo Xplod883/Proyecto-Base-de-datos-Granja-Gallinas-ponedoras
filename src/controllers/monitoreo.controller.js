@@ -99,10 +99,7 @@ async function actualizarMonitoreo(req, res){
   }
 }
 
-async function obtenerTemperaturaPromedio(
-  req,
-  res
-){
+async function obtenerTemperaturaPromedio(req,res){
   try{
     const resultado = await monitoreoService.obtenerTemperaturaPromedio();
 
@@ -148,6 +145,67 @@ async function eliminarMonitoreo(req, res){
   }
 }
 
+async function obtenerResumenTemperatura(req, res){
+  try{
+    const datos = await monitoreoService.obtenerResumenTemperatura();
+
+    res.status(200).json({
+      correcto: true,
+      mensaje: "Resumen obtenido correctamente",
+      datos
+    });
+  }catch (error){
+    console.error(error);
+
+    res.status(500).json({
+      correcto: false,
+      mensaje: "Error al obtener resumen"
+    });
+  }
+}
+
+async function obtenerTemperaturaPorFecha( req, res){
+  try {
+    const datos = await monitoreoService.obtenerTemperaturaPorFecha();
+
+    res.status(200).json({
+      correcto: true,
+      mensaje: "Temperaturas por fecha obtenidas correctamente",
+      total: datos.length,
+      datos
+    });
+  }catch (error){
+    console.error(error);
+    res.status(500).json({
+      correcto: false,
+      mensaje: "Error al obtener los datos"
+    });
+
+  }
+}
+
+async function obtenerAlertas(req, res){
+  try{
+
+    const datos = await monitoreoService.obtenerAlertas();
+
+    res.status(200).json({
+      correcto: true,
+      mensaje: "Alertas obtenidas correctamente",
+      datos
+    });
+
+  }catch (error){
+    console.error(error);
+
+    res.status(500).json({
+      correcto: false,
+      mensaje: "Error al obtener alertas"
+    });
+
+  }
+}
+
 
 module.exports = {
   obtenerTodos,
@@ -155,5 +213,8 @@ module.exports = {
   obtenerPorId,
   actualizarMonitoreo,
   obtenerTemperaturaPromedio,
-  eliminarMonitoreo
+  eliminarMonitoreo,
+  obtenerResumenTemperatura,
+  obtenerTemperaturaPorFecha,
+  obtenerAlertas
 };

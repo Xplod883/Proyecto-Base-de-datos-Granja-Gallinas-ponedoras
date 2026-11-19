@@ -8,12 +8,21 @@ const {
   obtenerPorId,
   actualizarMonitoreo,
   obtenerTemperaturaPromedio,
-  eliminarMonitoreo
+  eliminarMonitoreo,
+  obtenerResumenTemperatura,
+  obtenerTemperaturaPorFecha,
+  obtenerAlertas
 } = require("../controllers/monitoreo.controller");
 
 router.get("/", obtenerTodos);
 
 router.post("/", crearMonitoreo);
+
+router.get("/indicadores/resumen", obtenerResumenTemperatura);
+
+router.get("/indicadores/por-fecha", obtenerTemperaturaPorFecha);
+
+router.get("/indicadores/alertas", obtenerAlertas);
 
 router.get("/:id", obtenerPorId);
 
