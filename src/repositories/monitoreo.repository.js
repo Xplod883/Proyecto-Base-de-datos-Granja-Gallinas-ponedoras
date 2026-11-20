@@ -161,6 +161,7 @@ module.exports = {
   obtenerPorId,
   actualizarMonitoreo,
   obtenerTemperaturaPromedio,
+  obtenerTemperaturaPorFecha,
   eliminarMonitoreo,
   obtenerResumenTemperatura,
   obtenerAlertas
