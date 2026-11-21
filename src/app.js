@@ -25,6 +25,11 @@ app.use(
   require("./routes/bioseguridad.routes")
 );
 
+app.use(
+  "/api/control-sanitario",
+  require("./routes/controlSanitario.routes")
+);
+
 app.use(express.static(path.join(__dirname, "../public")));
 
 app.get("/api/verificar", (req, res) => {
