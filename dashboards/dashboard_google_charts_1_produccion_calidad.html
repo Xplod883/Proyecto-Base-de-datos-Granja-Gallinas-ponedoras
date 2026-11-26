@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Producción y Calidad</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7; --surface: #fcfcfb;
+    --text: #0b0b0b; --text-2: #52514e; --muted: #898781;
+    --grid: #e1e0d9; --baseline: #c3c2b7; --border: rgba(11,11,11,.10);
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
+    --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
+    --good: #0ca30c; --warning: #fab219; --critical: #d03b3b;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--text); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 28px 20px 40px; }
+  header h1 { margin: 0 0 4px; font-size: 24px; font-weight: 650; }
+  header p { margin: 0; color: var(--text-2); }
+  .filters { position: sticky; top: 0; z-index: 5; background: var(--page); margin-top: 18px; padding: 12px 0;
+             display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: flex-start; border-bottom: 1px solid var(--grid); }
+  .f { display: flex; flex-direction: column; gap: 4px; min-width: 150px; }
+  .f label { font-size: 12.5px; font-weight: 600; color: var(--text-2); }
+  .f select, .f input[type=date] { font: inherit; font-size: 13.5px; padding: 6px 8px; border: 1px solid var(--baseline);
+             border-radius: 8px; background: var(--surface); color: var(--text); min-height: 34px; }
+  .f select { min-width: 170px; max-width: 260px; }
+  .dr { display: flex; align-items: center; gap: 6px; }
+  .dr span { color: var(--muted); font-size: 12.5px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font: inherit; font-size: 12.5px; padding: 6px 11px; border-radius: 999px; border: 1px solid var(--baseline);
+          background: var(--surface); color: var(--text-2); cursor: pointer; min-height: 34px; }
+  .chip[aria-pressed=true] { background: var(--s1); border-color: var(--s1); color: #fff; }
+  .hint { font-size: 11.5px; color: var(--muted); max-width: 240px; line-height: 1.3; }
+  #reset { align-self: flex-start; margin-top: 21px; font: inherit; font-size: 13px; padding: 6px 12px; min-height: 34px;
+           border: 1px solid var(--baseline); border-radius: 8px; background: var(--surface); color: var(--text-2); cursor: pointer; }
+  #reset:hover, .chip:hover { border-color: var(--text-2); }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 18px 0; }
+  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .kpi .l { color: var(--text-2); font-size: 13px; }
+  .kpi .v { font-size: 28px; font-weight: 650; margin-top: 2px; }
+  .kpi .s { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 16px 10px; min-width: 0; }
+  .card.wide { grid-column: 1 / -1; }
+  .card h2 { margin: 0; font-size: 16px; font-weight: 650; }
+  .card .sub { margin: 2px 0 8px; color: var(--muted); font-size: 12.5px; }
+  .chart { width: 100%; height: 320px; }
+  .chart.tall { height: 380px; }
+  .empty { height: 100%; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13.5px; text-align: center; }
+  details { margin-top: 4px; }
+  summary { cursor: pointer; color: var(--text-2); font-size: 12.5px; padding: 4px 0; }
+  .dt { max-height: 240px; overflow: auto; margin: 6px 0 8px; }
+  .dt table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  .dt th, .dt td { text-align: left; padding: 3px 8px; border-bottom: 1px solid var(--grid); }
+  .dt th { color: var(--text-2); font-weight: 600; position: sticky; top: 0; background: var(--surface); }
+  .dt td.n { text-align: right; font-variant-numeric: tabular-nums; }
+  footer { margin-top: 20px; color: var(--text-2); font-size: 12.5px; }
+  footer ul { margin: 6px 0 0; padding-left: 18px; }
+  .google-visualization-table-table { font: 13.5px system-ui, sans-serif; width: 100%; }
+  .google-visualization-table-th { background: var(--page) !important; color: var(--text-2) !important; border-bottom: 1px solid var(--baseline) !important; font-weight: 600 !important; }
+  .google-visualization-table-td { border-bottom: 1px solid var(--grid) !important; color: var(--text); }
+  .google-visualization-table-tr-even td, .google-visualization-table-tr-odd td { background: var(--surface) !important; }
+  .google-visualization-table-tr-over td { background: #f0efec !important; }
+  td.st-crit { color: var(--critical) !important; font-weight: 650; }
+  td.st-low  { color: #8a5a00 !important; font-weight: 650; }
+  td.st-ok   { color: #006300 !important; font-weight: 650; }
+  td.st-none { color: var(--muted) !important; }
+  @media (max-width: 820px) { .grid { grid-template-columns: 1fr; } .chart { height: 300px; } .filters { position: static; } }
+  @media (forced-colors: active) { .card, .kpi, .chip { border: 1px solid CanvasText; } .chip[aria-pressed=true] { outline: 2px solid Highlight; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Producción y Calidad</h1>
+    <p>Granja de Gallinas Ponedoras · vw_rep01, 02, 03, 04 y 06</p>
+  </header>
+  <section class="filters" id="filters" aria-label="Filtros"></section>
+  <section class="kpis" id="kpis" aria-live="polite"></section>
+  <main class="grid"><section class="card"><h2>Producción diaria</h2><p class="sub">Huevos recolectados por día (suma de los lotes filtrados) · vw_rep01</p><div class="chart" id="c1" role="img" aria-label="Producción diaria"></div><details><summary>Ver tabla de datos</summary><div class="dt" id="c1-data"></div></details></section><section class="card"><h2>Producción semanal</h2><p class="sub">Total de huevos por fecha de producción · vw_rep02 (con filtro de lote o galpón se recalcula desde vw_rep01)</p><div class="chart" id="c2" role="img" aria-label="Producción semanal"></div><details><summary>Ver tabla de datos</summary><div class="dt" id="c2-data"></div></details></section><section class="card"><h2>Clasificación del huevo</h2><p class="sub">Huevos clasificados por categoría · vw_rep03</p><div class="chart" id="c3" role="img" aria-label="Clasificación del huevo"></div><details><summary>Ver tabla de datos</summary><div class="dt" id="c3-data"></div></details></section><section class="card"><h2>Producción por lote</h2><p class="sub">Huevos recolectados acumulados por lote · vw_rep01</p><div class="chart" id="c4" role="img" aria-label="Producción por lote"></div><details><summary>Ver tabla de datos</summary><div class="dt" id="c4-data"></div></details></section><section class="card"><h2>Tasa de postura promedio</h2><p class="sub">Promedio de la tasa de postura diaria · verde ≥ 90 %, amarillo 80–90 %, rojo &lt; 80 %</p><div class="chart" id="c5" role="img" aria-label="Tasa de postura promedio"></div></section><section class="card"><h2>Eficiencia alimenticia</h2><p class="sub">Promedio de huevos producidos por saco de alimento consumido · vw_rep06</p><div class="chart" id="c6" role="img" aria-label="Eficiencia alimenticia"></div><details><summary>Ver tabla de datos</summary><div class="dt" id="c6-data"></div></details></section></main>
+  <footer>
+    <strong>Notas sobre los datos</strong>
+    <ul><li>Los filtros recalculan los seis gráficos y los indicadores de arriba; «Restablecer filtros» vuelve a la vista completa.</li><li>Cada galpón corresponde a un solo lote en vw_rep01 (Galpón 01 = LOT-2026-001, y así), por eso el filtro de galpón también se aplica a clasificación, ovoscopia y eficiencia.</li><li>Los registros del 3 al 17 de septiembre no tienen tasa de postura (NULL); entran en los gráficos de volumen pero no en el cálculo de la tasa.</li><li>La vista vw_rep02 se llama «semanal» pero entrega un registro por día; el gráfico la muestra tal cual, por fecha.</li><li>En vw_rep03 los registros de septiembre traen toda la producción del día en una sola categoría (100 %); se incluyen sin modificar.</li><li>El eje de fechas del gráfico de línea es continuo: el tramo plano entre el 17 y el 28 de septiembre es un periodo sin registros.</li></ul>
+  </footer>
+</div>
+<script src="https://www.gstatic.com/charts/loader.js"></script>
+<script>
+const DATA = {"r01": [{"f": "2026-09-28", "lote": "LOT-2026-001", "galpon": "Galpon 01", "huevos": 10800.0, "tasa": 93.91}, {"f": "2026-09-29", "lote": "LOT-2026-001", "galpon": "Galpon 01", "huevos": 10750.0, "tasa": 93.48}, {"f": "2026-09-30", "lote": "LOT-2026-001", "galpon": "Galpon 01", "huevos": 10820.0, "tasa": 94.09}, {"f": "2026-10-01", "lote": "LOT-2026-001", "galpon": "Galpon 01", "huevos": 10780.0, "tasa": 93.74}, {"f": "2026-10-02", "lote": "LOT-2026-001", "galpon": "Galpon 01", "huevos": 10850.0, "tasa": 94.35}, {"f": "2026-10-03", "lote": "LOT-2026-001", "galpon": "Galpon 01", "huevos": 10810.0, "tasa": 94.0}, {"f": "2026-10-04", "lote": "LOT-2026-001", "galpon": "Galpon 01", "huevos": 10790.0, "tasa": 93.83}, {"f": "2026-09-28", "lote": "LOT-2026-002", "galpon": "Galpon 03", "huevos": 11100.0, "tasa": 94.07}, {"f": "2026-09-29", "lote": "LOT-2026-002", "galpon": "Galpon 03", "huevos": 11050.0, "tasa": 93.64}, {"f": "2026-09-30", "lote": "LOT-2026-002", "galpon": "Galpon 03", "huevos": 11120.0, "tasa": 94.24}, {"f": "2026-10-01", "lote": "LOT-2026-002", "galpon": "Galpon 03", "huevos": 11080.0, "tasa": 93.9}, {"f": "2026-10-02", "lote": "LOT-2026-002", "galpon": "Galpon 03", "huevos": 11150.0, "tasa": 94.49}, {"f": "2026-10-03", "lote": "LOT-2026-002", "galpon": "Galpon 03", "huevos": 11100.0, "tasa": 94.07}, {"f": "2026-10-04", "lote": "LOT-2026-002", "galpon": "Galpon 03", "huevos": 11070.0, "tasa": 93.81}, {"f": "2026-10-08", "lote": "LOT-2026-001", "galpon": "Galpon 01", "huevos": 10800.0, "tasa": 94.5}, {"f": "2026-10-08", "lote": "LOT-2026-002", "galpon": "Galpon 03", "huevos": 11100.0, "tasa": 94.6}, {"f": "2026-10-09", "lote": "LOT-2026-003", "galpon": "Galpon 05", "huevos": 11250.0, "tasa": 95.2}, {"f": "2026-10-09", "lote": "LOT-2026-004", "galpon": "Galpon 07", "huevos": 10980.0, "tasa": 94.65}, {"f": "2026-09-03", "lote": "LOT-2026-001", "galpon": "Galpon 01", "huevos": 2000.0, "tasa": null}, {"f": "2026-09-04", "lote": "LOT-2026-002", "galpon": "Galpon 03", "huevos": 1750.0, "tasa": null}, {"f": "2026-09-05", "lote": "LOT-2026-003", "galpon": "Galpon 05", "huevos": 3200.0, "tasa": null}, {"f": "2026-09-06", "lote": "LOT-2026-004", "galpon": "Galpon 07", "huevos": 1000.0, "tasa": null}, {"f": "2026-09-07", "lote": "LOT-2026-005", "galpon": "Galpon 09", "huevos": 1100.0, "tasa": null}, {"f": "2026-09-08", "lote": "LOT-2026-001", "galpon": "Galpon 01", "huevos": 2750.0, "tasa": null}, {"f": "2026-09-09", "lote": "LOT-2026-002", "galpon": "Galpon 03", "huevos": 1950.0, "tasa": null}, {"f": "2026-09-10", "lote": "LOT-2026-003", "galpon": "Galpon 05", "huevos": 2300.0, "tasa": null}, {"f": "2026-09-11", "lote": "LOT-2026-004", "galpon": "Galpon 07", "huevos": 1600.0, "tasa": null}, {"f": "2026-09-12", "lote": "LOT-2026-005", "galpon": "Galpon 09", "huevos": 2900.0, "tasa": null}, {"f": "2026-09-13", "lote": "LOT-2026-001", "galpon": "Galpon 01", "huevos": 2000.0, "tasa": null}, {"f": "2026-09-14", "lote": "LOT-2026-002", "galpon": "Galpon 03", "huevos": 1500.0, "tasa": null}, {"f": "2026-09-15", "lote": "LOT-2026-003", "galpon": "Galpon 05", "huevos": 1800.0, "tasa": null}, {"f": "2026-09-16", "lote": "LOT-2026-004", "galpon": "Galpon 07", "huevos": 1200.0, "tasa": null}, {"f": "2026-09-17", "lote": "LOT-2026-005", "galpon": "Galpon 09", "huevos": 2500.0, "tasa": null}], "r02": [{"f": "2026-09-03", "total": 2000.0}, {"f": "2026-09-04", "total": 1750.0}, {"f": "2026-09-05", "total": 3200.0}, {"f": "2026-09-06", "total": 1000.0}, {"f": "2026-09-07", "total": 1100.0}, {"f": "2026-09-08", "total": 2750.0}, {"f": "2026-09-09", "total": 1950.0}, {"f": "2026-09-10", "total": 2300.0}, {"f": "2026-09-11", "total": 1600.0}, {"f": "2026-09-12", "total": 2900.0}, {"f": "2026-09-13", "total": 2000.0}, {"f": "2026-09-14", "total": 1500.0}, {"f": "2026-09-15", "total": 1800.0}, {"f": "2026-09-16", "total": 1200.0}, {"f": "2026-09-17", "total": 2500.0}, {"f": "2026-09-28", "total": 21900.0}, {"f": "2026-09-29", "total": 21800.0}, {"f": "2026-09-30", "total": 21940.0}, {"f": "2026-10-01", "total": 21860.0}, {"f": "2026-10-02", "total": 22000.0}, {"f": "2026-10-03", "total": 21910.0}, {"f": "2026-10-04", "total": 21860.0}, {"f": "2026-10-08", "total": 21900.0}, {"f": "2026-10-09", "total": 22230.0}], "r03": [{"f": "2026-09-28", "lote": "LOT-2026-001", "cat": "JUMBO", "n": 1200.0}, {"f": "2026-09-28", "lote": "LOT-2026-001", "cat": "EXTRA GRANDE", "n": 3500.0}, {"f": "2026-09-28", "lote": "LOT-2026-001", "cat": "GRANDE", "n": 4200.0}, {"f": "2026-09-28", "lote": "LOT-2026-001", "cat": "MEDIANO", "n": 1500.0}, {"f": "2026-09-28", "lote": "LOT-2026-001", "cat": "PEQUENO", "n": 400.0}, {"f": "2026-09-29", "lote": "LOT-2026-001", "cat": "JUMBO", "n": 1100.0}, {"f": "2026-09-29", "lote": "LOT-2026-001", "cat": "EXTRA GRANDE", "n": 3400.0}, {"f": "2026-09-29", "lote": "LOT-2026-001", "cat": "GRANDE", "n": 4300.0}, {"f": "2026-09-29", "lote": "LOT-2026-001", "cat": "MEDIANO", "n": 1550.0}, {"f": "2026-09-29", "lote": "LOT-2026-001", "cat": "PEQUENO", "n": 400.0}, {"f": "2026-09-30", "lote": "LOT-2026-001", "cat": "JUMBO", "n": 1250.0}, {"f": "2026-09-30", "lote": "LOT-2026-001", "cat": "EXTRA GRANDE", "n": 3600.0}, {"f": "2026-09-30", "lote": "LOT-2026-001", "cat": "GRANDE", "n": 4200.0}, {"f": "2026-09-30", "lote": "LOT-2026-001", "cat": "MEDIANO", "n": 1500.0}, {"f": "2026-09-30", "lote": "LOT-2026-001", "cat": "PEQUENO", "n": 270.0}, {"f": "2026-10-01", "lote": "LOT-2026-001", "cat": "JUMBO", "n": 1190.0}, {"f": "2026-10-01", "lote": "LOT-2026-001", "cat": "EXTRA GRANDE", "n": 3450.0}, {"f": "2026-10-01", "lote": "LOT-2026-001", "cat": "GRANDE", "n": 4200.0}, {"f": "2026-10-01", "lote": "LOT-2026-001", "cat": "MEDIANO", "n": 1500.0}, {"f": "2026-10-01", "lote": "LOT-2026-001", "cat": "PEQUENO", "n": 440.0}, {"f": "2026-10-02", "lote": "LOT-2026-001", "cat": "JUMBO", "n": 1200.0}, {"f": "2026-10-02", "lote": "LOT-2026-001", "cat": "EXTRA GRANDE", "n": 3470.0}, {"f": "2026-10-02", "lote": "LOT-2026-001", "cat": "GRANDE", "n": 4230.0}, {"f": "2026-10-02", "lote": "LOT-2026-001", "cat": "MEDIANO", "n": 1520.0}, {"f": "2026-10-02", "lote": "LOT-2026-001", "cat": "PEQUENO", "n": 430.0}, {"f": "2026-10-03", "lote": "LOT-2026-001", "cat": "JUMBO", "n": 1190.0}, {"f": "2026-10-03", "lote": "LOT-2026-001", "cat": "EXTRA GRANDE", "n": 3460.0}, {"f": "2026-10-03", "lote": "LOT-2026-001", "cat": "GRANDE", "n": 4210.0}, {"f": "2026-10-03", "lote": "LOT-2026-001", "cat": "MEDIANO", "n": 1510.0}, {"f": "2026-10-03", "lote": "LOT-2026-001", "cat": "PEQUENO", "n": 440.0}, {"f": "2026-10-04", "lote": "LOT-2026-001", "cat": "JUMBO", "n": 1190.0}, {"f": "2026-10-04", "lote": "LOT-2026-001", "cat": "EXTRA GRANDE", "n": 3450.0}, {"f": "2026-10-04", "lote": "LOT-2026-001", "cat": "GRANDE", "n": 4200.0}, {"f": "2026-10-04", "lote": "LOT-2026-001", "cat": "MEDIANO", "n": 1510.0}, {"f": "2026-10-04", "lote": "LOT-2026-001", "cat": "PEQUENO", "n": 440.0}, {"f": "2026-09-28", "lote": "LOT-2026-002", "cat": "JUMBO", "n": 1220.0}, {"f": "2026-09-28", "lote": "LOT-2026-002", "cat": "EXTRA GRANDE", "n": 3550.0}, {"f": "2026-09-28", "lote": "LOT-2026-002", "cat": "GRANDE", "n": 4330.0}, {"f": "2026-09-28", "lote": "LOT-2026-002", "cat": "MEDIANO", "n": 1550.0}, {"f": "2026-09-28", "lote": "LOT-2026-002", "cat": "PEQUENO", "n": 450.0}, {"f": "2026-09-29", "lote": "LOT-2026-002", "cat": "JUMBO", "n": 1220.0}, {"f": "2026-09-29", "lote": "LOT-2026-002", "cat": "EXTRA GRANDE", "n": 3540.0}, {"f": "2026-09-29", "lote": "LOT-2026-002", "cat": "GRANDE", "n": 4310.0}, {"f": "2026-09-29", "lote": "LOT-2026-002", "cat": "MEDIANO", "n": 1540.0}, {"f": "2026-09-29", "lote": "LOT-2026-002", "cat": "PEQUENO", "n": 440.0}, {"f": "2026-09-30", "lote": "LOT-2026-002", "cat": "JUMBO", "n": 1220.0}, {"f": "2026-09-30", "lote": "LOT-2026-002", "cat": "EXTRA GRANDE", "n": 3560.0}, {"f": "2026-09-30", "lote": "LOT-2026-002", "cat": "GRANDE", "n": 4340.0}, {"f": "2026-09-30", "lote": "LOT-2026-002", "cat": "MEDIANO", "n": 1550.0}, {"f": "2026-09-30", "lote": "LOT-2026-002", "cat": "PEQUENO", "n": 450.0}, {"f": "2026-10-01", "lote": "LOT-2026-002", "cat": "JUMBO", "n": 1220.0}, {"f": "2026-10-01", "lote": "LOT-2026-002", "cat": "EXTRA GRANDE", "n": 3550.0}, {"f": "2026-10-01", "lote": "LOT-2026-002", "cat": "GRANDE", "n": 4320.0}, {"f": "2026-10-01", "lote": "LOT-2026-002", "cat": "MEDIANO", "n": 1540.0}, {"f": "2026-10-01", "lote": "LOT-2026-002", "cat": "PEQUENO", "n": 450.0}, {"f": "2026-10-02", "lote": "LOT-2026-002", "cat": "JUMBO", "n": 1230.0}, {"f": "2026-10-02", "lote": "LOT-2026-002", "cat": "EXTRA GRANDE", "n": 3570.0}, {"f": "2026-10-02", "lote": "LOT-2026-002", "cat": "GRANDE", "n": 4350.0}, {"f": "2026-10-02", "lote": "LOT-2026-002", "cat": "MEDIANO", "n": 1550.0}, {"f": "2026-10-02", "lote": "LOT-2026-002", "cat": "PEQUENO", "n": 450.0}, {"f": "2026-10-03", "lote": "LOT-2026-002", "cat": "JUMBO", "n": 1220.0}, {"f": "2026-10-03", "lote": "LOT-2026-002", "cat": "EXTRA GRANDE", "n": 3550.0}, {"f": "2026-10-03", "lote": "LOT-2026-002", "cat": "GRANDE", "n": 4330.0}, {"f": "2026-10-03", "lote": "LOT-2026-002", "cat": "MEDIANO", "n": 1550.0}, {"f": "2026-10-03", "lote": "LOT-2026-002", "cat": "PEQUENO", "n": 450.0}, {"f": "2026-10-04", "lote": "LOT-2026-002", "cat": "JUMBO", "n": 1220.0}, {"f": "2026-10-04", "lote": "LOT-2026-002", "cat": "EXTRA GRANDE", "n": 3540.0}, {"f": "2026-10-04", "lote": "LOT-2026-002", "cat": "GRANDE", "n": 4320.0}, {"f": "2026-10-04", "lote": "LOT-2026-002", "cat": "MEDIANO", "n": 1540.0}, {"f": "2026-10-04", "lote": "LOT-2026-002", "cat": "PEQUENO", "n": 450.0}, {"f": "2026-10-08", "lote": "LOT-2026-001", "cat": "JUMBO", "n": 1190.0}, {"f": "2026-10-08", "lote": "LOT-2026-001", "cat": "EXTRA GRANDE", "n": 3460.0}, {"f": "2026-10-08", "lote": "LOT-2026-001", "cat": "GRANDE", "n": 4210.0}, {"f": "2026-10-08", "lote": "LOT-2026-001", "cat": "MEDIANO", "n": 1510.0}, {"f": "2026-10-08", "lote": "LOT-2026-001", "cat": "PEQUENO", "n": 430.0}, {"f": "2026-10-08", "lote": "LOT-2026-002", "cat": "JUMBO", "n": 1220.0}, {"f": "2026-10-08", "lote": "LOT-2026-002", "cat": "EXTRA GRANDE", "n": 3550.0}, {"f": "2026-10-08", "lote": "LOT-2026-002", "cat": "GRANDE", "n": 4330.0}, {"f": "2026-10-08", "lote": "LOT-2026-002", "cat": "MEDIANO", "n": 1550.0}, {"f": "2026-10-08", "lote": "LOT-2026-002", "cat": "PEQUENO", "n": 450.0}, {"f": "2026-10-09", "lote": "LOT-2026-003", "cat": "JUMBO", "n": 1240.0}, {"f": "2026-10-09", "lote": "LOT-2026-003", "cat": "EXTRA GRANDE", "n": 3600.0}, {"f": "2026-10-09", "lote": "LOT-2026-003", "cat": "GRANDE", "n": 4380.0}, {"f": "2026-10-09", "lote": "LOT-2026-003", "cat": "MEDIANO", "n": 1570.0}, {"f": "2026-10-09", "lote": "LOT-2026-003", "cat": "PEQUENO", "n": 460.0}, {"f": "2026-10-09", "lote": "LOT-2026-004", "cat": "JUMBO", "n": 1210.0}, {"f": "2026-10-09", "lote": "LOT-2026-004", "cat": "EXTRA GRANDE", "n": 3510.0}, {"f": "2026-10-09", "lote": "LOT-2026-004", "cat": "GRANDE", "n": 4280.0}, {"f": "2026-10-09", "lote": "LOT-2026-004", "cat": "MEDIANO", "n": 1530.0}, {"f": "2026-10-09", "lote": "LOT-2026-004", "cat": "PEQUENO", "n": 450.0}, {"f": "2026-09-03", "lote": "LOT-2026-001", "cat": "JUMBO", "n": 2000.0}, {"f": "2026-09-04", "lote": "LOT-2026-002", "cat": "EXTRA GRANDE", "n": 1750.0}, {"f": "2026-09-05", "lote": "LOT-2026-003", "cat": "EXTRA GRANDE", "n": 3200.0}, {"f": "2026-09-06", "lote": "LOT-2026-004", "cat": "PEQUENO", "n": 1000.0}, {"f": "2026-09-07", "lote": "LOT-2026-005", "cat": "EXTRA GRANDE", "n": 1100.0}, {"f": "2026-09-08", "lote": "LOT-2026-001", "cat": "EXTRA GRANDE", "n": 2750.0}, {"f": "2026-09-09", "lote": "LOT-2026-002", "cat": "EXTRA GRANDE", "n": 1950.0}, {"f": "2026-09-10", "lote": "LOT-2026-003", "cat": "EXTRA GRANDE", "n": 2300.0}, {"f": "2026-09-11", "lote": "LOT-2026-004", "cat": "EXTRA GRANDE", "n": 1600.0}, {"f": "2026-09-12", "lote": "LOT-2026-005", "cat": "EXTRA GRANDE", "n": 2900.0}, {"f": "2026-09-13", "lote": "LOT-2026-001", "cat": "GRANDE", "n": 2000.0}, {"f": "2026-09-14", "lote": "LOT-2026-002", "cat": "MEDIANO", "n": 1500.0}, {"f": "2026-09-15", "lote": "LOT-2026-003", "cat": "JUMBO", "n": 1800.0}, {"f": "2026-09-16", "lote": "LOT-2026-004", "cat": "PEQUENO", "n": 1200.0}, {"f": "2026-09-17", "lote": "LOT-2026-005", "cat": "EXTRA GRANDE", "n": 2500.0}], "r04": [{"f": "2026-10-08", "lote": "LOT-2026-001", "insp": 1500.0, "rech": 32.0}, {"f": "2026-10-08", "lote": "LOT-2026-002", "insp": 1500.0, "rech": 24.0}, {"f": "2026-10-09", "lote": "LOT-2026-003", "insp": 1800.0, "rech": 41.0}, {"f": "2026-10-09", "lote": "LOT-2026-004", "insp": 1800.0, "rech": 29.0}, {"f": "2026-10-01", "lote": "LOT-2026-001", "insp": 1500.0, "rech": 20.0}, {"f": "2026-10-02", "lote": "LOT-2026-001", "insp": 1500.0, "rech": 22.0}, {"f": "2026-10-03", "lote": "LOT-2026-001", "insp": 1500.0, "rech": 19.0}, {"f": "2026-10-04", "lote": "LOT-2026-001", "insp": 1500.0, "rech": 21.0}, {"f": "2026-10-01", "lote": "LOT-2026-001", "insp": 1500.0, "rech": 18.0}, {"f": "2026-10-01", "lote": "LOT-2026-001", "insp": 1500.0, "rech": 21.0}, {"f": "2026-10-01", "lote": "LOT-2026-001", "insp": 1500.0, "rech": 20.0}, {"f": "2026-10-01", "lote": "LOT-2026-001", "insp": 1500.0, "rech": 19.0}, {"f": "2026-10-02", "lote": "LOT-2026-001", "insp": 1500.0, "rech": 20.0}, {"f": "2026-10-02", "lote": "LOT-2026-001", "insp": 1500.0, "rech": 23.0}, {"f": "2026-10-02", "lote": "LOT-2026-001", "insp": 1500.0, "rech": 18.0}, {"f": "2026-10-02", "lote": "LOT-2026-001", "insp": 1500.0, "rech": 21.0}, {"f": "2026-10-03", "lote": "LOT-2026-001", "insp": 1500.0, "rech": 19.0}, {"f": "2026-10-03", "lote": "LOT-2026-001", "insp": 1500.0, "rech": 22.0}, {"f": "2026-10-03", "lote": "LOT-2026-001", "insp": 1500.0, "rech": 24.0}, {"f": "2026-10-03", "lote": "LOT-2026-001", "insp": 1500.0, "rech": 20.0}, {"f": "2026-10-04", "lote": "LOT-2026-001", "insp": 1500.0, "rech": 18.0}, {"f": "2026-10-04", "lote": "LOT-2026-001", "insp": 1500.0, "rech": 21.0}, {"f": "2026-10-04", "lote": "LOT-2026-001", "insp": 1500.0, "rech": 19.0}, {"f": "2026-10-04", "lote": "LOT-2026-001", "insp": 1500.0, "rech": 22.0}, {"f": "2026-10-01", "lote": "LOT-2026-002", "insp": 1800.0, "rech": 22.0}, {"f": "2026-10-01", "lote": "LOT-2026-002", "insp": 1800.0, "rech": 26.0}, {"f": "2026-10-01", "lote": "LOT-2026-002", "insp": 1800.0, "rech": 24.0}, {"f": "2026-10-01", "lote": "LOT-2026-002", "insp": 1800.0, "rech": 23.0}, {"f": "2026-10-02", "lote": "LOT-2026-002", "insp": 1800.0, "rech": 21.0}, {"f": "2026-10-02", "lote": "LOT-2026-002", "insp": 1800.0, "rech": 25.0}, {"f": "2026-10-02", "lote": "LOT-2026-002", "insp": 1800.0, "rech": 22.0}, {"f": "2026-10-02", "lote": "LOT-2026-002", "insp": 1800.0, "rech": 24.0}, {"f": "2026-10-03", "lote": "LOT-2026-002", "insp": 1800.0, "rech": 20.0}, {"f": "2026-10-03", "lote": "LOT-2026-002", "insp": 1800.0, "rech": 24.0}, {"f": "2026-10-03", "lote": "LOT-2026-002", "insp": 1800.0, "rech": 26.0}, {"f": "2026-10-03", "lote": "LOT-2026-002", "insp": 1800.0, "rech": 23.0}, {"f": "2026-10-04", "lote": "LOT-2026-002", "insp": 1800.0, "rech": 22.0}, {"f": "2026-10-04", "lote": "LOT-2026-002", "insp": 1800.0, "rech": 27.0}, {"f": "2026-10-04", "lote": "LOT-2026-002", "insp": 1800.0, "rech": 25.0}, {"f": "2026-10-04", "lote": "LOT-2026-002", "insp": 1800.0, "rech": 24.0}], "r06": [{"f": "2026-10-01", "lote": "LOT-2026-001", "hps": 256.67}, {"f": "2026-10-02", "lote": "LOT-2026-001", "hps": 255.29}, {"f": "2026-10-03", "lote": "LOT-2026-001", "hps": 255.86}, {"f": "2026-10-04", "lote": "LOT-2026-001", "hps": 252.4}, {"f": "2026-10-01", "lote": "LOT-2026-002", "hps": 251.82}, {"f": "2026-10-02", "lote": "LOT-2026-002", "hps": 251.98}, {"f": "2026-10-03", "lote": "LOT-2026-002", "hps": 249.44}, {"f": "2026-10-04", "lote": "LOT-2026-002", "hps": 247.37}]};
+</script>
+<script>
+const MES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const $ = id => document.getElementById(id);
+const fmt = (x, d = 0) => (x == null || isNaN(x)) ? '—' : x.toLocaleString('es-GT', { minimumFractionDigits: d, maximumFractionDigits: d });
+const lbl = d => { const p = d.split('-'); return p[2] + ' ' + MES[+p[1] - 1]; };
+const sum = (a, f) => a.reduce((s, x) => s + f(x), 0);
+const r2 = x => Math.round(x * 100) / 100;
+const byEs = (a, b) => a.localeCompare(b, 'es');
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+function groupSum(rows, kf, vf) {
+  const m = new Map();
+  rows.forEach(r => { const v = vf(r); if (v == null) return; const k = kf(r); m.set(k, (m.get(k) || 0) + v); });
+  return m;
+}
+const F = {};
+let ready = false;
+const inst = {};
+const inRange = d => (!F.fecha.from || d >= F.fecha.from) && (!F.fecha.to || d <= F.fecha.to);
+
+function initState() {
+  FILTERS.forEach(f => {
+    F[f.id] = f.type === 'select' ? '' : f.type === 'range' ? { from: '', to: '' } : new Set(f.options.map(o => o.v));
+  });
+}
+
+function buildFilters() {
+  let html = '';
+  FILTERS.forEach(f => {
+    html += '<div class="f"><label for="f-' + f.id + (f.type === 'range' ? '-from' : '') + '">' + f.label + '</label>';
+    if (f.type === 'select') {
+      html += '<select id="f-' + f.id + '"><option value="">Todos</option>' +
+        f.options.map(o => '<option value="' + esc(o) + '">' + esc(o) + '</option>').join('') + '</select>';
+    } else if (f.type === 'range') {
+      html += '<div class="dr"><input type="date" id="f-' + f.id + '-from" min="' + f.min + '" max="' + f.max + '" aria-label="Desde">' +
+        '<span>a</span><input type="date" id="f-' + f.id + '-to" min="' + f.min + '" max="' + f.max + '" aria-label="Hasta"></div>';
+    } else {
+      html += '<div class="chips" id="f-' + f.id + '" role="group" aria-label="' + f.label + '">' +
+        f.options.map(o => '<button type="button" class="chip" data-v="' + esc(o.v) + '" aria-pressed="true">' + o.l + (o.note || '') + '</button>').join('') + '</div>';
+    }
+    html += '<div class="hint">' + f.hint + '</div></div>';
+  });
+  html += '<button id="reset" type="button">Restablecer filtros</button>';
+  $('filters').innerHTML = html;
+  FILTERS.forEach(f => {
+    if (f.type === 'select') {
+      $('f-' + f.id).addEventListener('change', e => { F[f.id] = e.target.value; refresh(); });
+    } else if (f.type === 'range') {
+      $('f-' + f.id + '-from').addEventListener('change', e => { F[f.id].from = e.target.value; refresh(); });
+      $('f-' + f.id + '-to').addEventListener('change', e => { F[f.id].to = e.target.value; refresh(); });
+    } else {
+      $('f-' + f.id).querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => {
+        const v = b.getAttribute('data-v');
+        if (F[f.id].has(v)) F[f.id].delete(v); else F[f.id].add(v);
+        b.setAttribute('aria-pressed', F[f.id].has(v) ? 'true' : 'false');
+        refresh();
+      }));
+    }
+  });
+  $('reset').addEventListener('click', () => {
+    initState();
+    FILTERS.forEach(f => {
+      if (f.type === 'select') $('f-' + f.id).value = '';
+      else if (f.type === 'range') { $('f-' + f.id + '-from').value = ''; $('f-' + f.id + '-to').value = ''; }
+      else $('f-' + f.id).querySelectorAll('.chip').forEach(b => b.setAttribute('aria-pressed', 'true'));
+    });
+    refresh();
+  });
+}
+
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const TOK = { s1:'--s1', s2:'--s2', s3:'--s3', s4:'--s4', s5:'--s5', s6:'--s6', s7:'--s7', s8:'--s8', muted:'--muted', text2:'--text-2' };
+const tok = t => TOK[t] ? css(TOK[t]) : t;
+
+function merge(a, b) {
+  for (const k in b) {
+    if (b[k] && typeof b[k] === 'object' && !Array.isArray(b[k])) a[k] = merge(a[k] || {}, b[k]);
+    else a[k] = b[k];
+  }
+  return a;
+}
+
+function base() {
+  const ink = css('--text-2'), mu = css('--muted'), grid = css('--grid'), line = css('--baseline');
+  return {
+    backgroundColor: 'transparent', fontName: 'system-ui', fontSize: 12,
+    chartArea: { left: 72, top: 16, right: 16, bottom: 64 },
+    legend: { position: 'bottom', textStyle: { color: ink } },
+    hAxis: { textStyle: { color: mu }, baselineColor: line, gridlines: { color: 'transparent' }, titleTextStyle: { color: ink, italic: false } },
+    vAxis: { textStyle: { color: mu }, baselineColor: line, gridlines: { color: grid }, minorGridlines: { color: 'transparent' }, titleTextStyle: { color: ink, italic: false }, minValue: 0 },
+    tooltip: { textStyle: { color: '#0b0b0b' } },
+    animation: { duration: 350, easing: 'out' }
+  };
+}
+
+function toTable(res, kind) {
+  const dt = new google.visualization.DataTable();
+  res.cols.forEach(c => dt.addColumn(c[0], c[1]));
+  dt.addRows(res.rows.map(r => r.map((v, i) => {
+    if (v !== null && res.cols[i][0] === 'date') { const p = v.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); }
+    return v;
+  })));
+  Object.entries(res.fmt || {}).forEach(([i, pat]) => new google.visualization.NumberFormat({ pattern: pat }).format(dt, +i));
+  if (kind === 'Table' && res.statusCol !== undefined) {
+    res.rows.forEach((r, i) => {
+      const s = r[res.statusCol];
+      dt.setProperty(i, res.statusCol, 'className',
+        s.startsWith('CRÍTICO') ? 'st-crit' : s.startsWith('BAJO') ? 'st-low' : s.startsWith('OK') ? 'st-ok' : 'st-none');
+    });
+  }
+  return dt;
+}
+
+function dataView(c, res) {
+  const box = $(c.id + '-data');
+  if (!box) return;
+  if (!res || !res.rows.length) { box.innerHTML = ''; return; }
+  const head = '<tr>' + res.cols.map(x => '<th>' + x[1] + '</th>').join('') + '</tr>';
+  const body = res.rows.map(r => '<tr>' + r.map((v, i) => {
+    const isN = res.cols[i][0] === 'number';
+    let t = v === null ? '' : v;
+    if (isN && v !== null) t = fmt(v, (res.fmt && res.fmt[i] && res.fmt[i].includes('.00')) ? 2 : 0);
+    if (res.cols[i][0] === 'date' && v) t = lbl(v);
+    return '<td' + (isN ? ' class="n"' : '') + '>' + t + '</td>';
+  }).join('') + '</tr>').join('');
+  box.innerHTML = '<table>' + head + body + '</table>';
+}
+
+function drawChart(c, res) {
+  const el = $(c.id);
+  if (!res || !res.rows.length) {
+    el.innerHTML = '<div class="empty">Sin datos para los filtros seleccionados</div>';
+    delete inst[c.id];
+    dataView(c, null);
+    return;
+  }
+  if (!inst[c.id]) { el.innerHTML = ''; inst[c.id] = new google.visualization[c.kind](el); }
+  const o = base();
+  if (res.colors) o.colors = res.colors.map(tok);
+  if (c.kind === 'PieChart') {
+    merge(o, { legend: { position: 'right' }, chartArea: { left: 8, top: 8, right: 8, bottom: 8 },
+               pieSliceBorderColor: css('--surface'), pieSliceTextStyle: { color: '#fff', fontSize: 12 } });
+  }
+  if (c.kind === 'Gauge') merge(o, { redColor: css('--critical'), yellowColor: css('--warning'), greenColor: css('--good') });
+  merge(o, res.opts || {});
+  if (res.legend === false) o.legend = { position: 'none' };
+  inst[c.id].draw(toTable(res, c.kind), o);
+  if (c.kind !== 'Gauge' && c.kind !== 'Table') dataView(c, res);
+}
+
+function renderKpis() {
+  $('kpis').innerHTML = KPIS().map(k =>
+    '<div class="kpi"><div class="l">' + k.l + '</div><div class="v">' + k.v + '</div><div class="s">' + k.s + '</div></div>').join('');
+}
+
+function refresh() {
+  if (!ready) return;
+  CHARTS.forEach(c => drawChart(c, c.build()));
+  renderKpis();
+}
+
+function init() {
+  initState();
+  buildFilters();
+  google.charts.load('current', { packages: ['corechart', 'gauge', 'table'], language: 'es' });
+  google.charts.setOnLoadCallback(() => { ready = true; refresh(); });
+  let t;
+  window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => { Object.keys(inst).forEach(k => delete inst[k]); refresh(); }, 200); });
+}
+</script>
+<script>
+const D = DATA;
+const galponOf = {};
+D.r01.forEach(r => { galponOf[r.lote] = r.galpon; });
+const LOTES = [...new Set(D.r01.concat(D.r03).map(r => r.lote))].sort();
+const GALPONES = [...new Set(LOTES.map(l => galponOf[l]).filter(Boolean))].sort();
+const allDates = [].concat(D.r01, D.r02, D.r03, D.r04, D.r06).map(r => r.f).sort();
+const CATS = ['JUMBO', 'EXTRA GRANDE', 'GRANDE', 'MEDIANO', 'PEQUENO'];
+const CATL = { PEQUENO: 'PEQUEÑO' };
+
+const FILTERS = [
+  { id: 'lote', type: 'select', label: 'Lote', options: LOTES, hint: 'Afecta todos los gráficos' },
+  { id: 'galpon', type: 'select', label: 'Galpón', options: GALPONES, hint: 'Cada galpón corresponde a un lote' },
+  { id: 'fecha', type: 'range', label: 'Rango de fechas', min: allDates[0], max: allDates[allDates.length - 1], hint: 'Afecta todos los gráficos' },
+  { id: 'cat', type: 'chips', label: 'Categoría de huevo', options: CATS.map(c => ({ v: c, l: CATL[c] || c })), hint: 'Afecta solo «Clasificación del huevo»' }
+];
+
+const ok = r => (!F.lote || r.lote === F.lote) && (!F.galpon || galponOf[r.lote] === F.galpon) && inRange(r.f);
+
+function tasas() { return D.r01.filter(ok).filter(r => r.tasa != null).map(r => r.tasa); }
+function efLote() {
+  const m = new Map();
+  D.r06.filter(ok).forEach(r => { const a = m.get(r.lote) || []; a.push(r.hps); m.set(r.lote, a); });
+  return [...m].map(([k, a]) => [k, r2(a.reduce((s, x) => s + x, 0) / a.length)]).sort((a, b) => a[0] < b[0] ? -1 : 1);
+}
+
+const CHARTS = [
+  { id: 'c1', kind: 'LineChart', build() {
+    const rows = [...groupSum(D.r01.filter(ok), r => r.f, r => r.huevos)].sort((a, b) => a[0] < b[0] ? -1 : 1);
+    return { cols: [['date', 'Fecha'], ['number', 'Huevos recolectados']], rows, colors: ['s1'], legend: false, fmt: { 1: '#,##0' },
+      opts: { pointSize: 6, lineWidth: 2, hAxis: { format: 'd MMM' }, vAxis: { format: '#,##0', title: 'Huevos' } } };
+  } },
+  { id: 'c2', kind: 'ColumnChart', build() {
+    let rows;
+    if (!F.lote && !F.galpon) rows = D.r02.filter(r => inRange(r.f)).sort((a, b) => a.f < b.f ? -1 : 1).map(r => [lbl(r.f), r.total]);
+    else rows = [...groupSum(D.r01.filter(ok), r => r.f, r => r.huevos)].sort((a, b) => a[0] < b[0] ? -1 : 1).map(([k, v]) => [lbl(k), v]);
+    return { cols: [['string', 'Fecha'], ['number', 'Total de huevos']], rows, colors: ['s1'], legend: false, fmt: { 1: '#,##0' },
+      opts: { bar: { groupWidth: '65%' }, hAxis: { slantedText: true, slantedTextAngle: 45 }, vAxis: { format: '#,##0', title: 'Huevos' }, chartArea: { bottom: 72 } } };
+  } },
+  { id: 'c3', kind: 'PieChart', build() {
+    const m = groupSum(D.r03.filter(r => ok(r) && F.cat.has(r.cat)), r => r.cat, r => r.n);
+    const present = CATS.filter(c => (m.get(c) || 0) > 0);
+    return { cols: [['string', 'Categoría'], ['number', 'Huevos clasificados']], rows: present.map(c => [CATL[c] || c, m.get(c)]),
+      colors: present.map(c => 's' + (CATS.indexOf(c) + 1)), fmt: { 1: '#,##0' }, opts: { pieHole: 0.45, pieSliceText: 'percentage' } };
+  } },
+  { id: 'c4', kind: 'BarChart', build() {
+    const rows = [...groupSum(D.r01.filter(ok), r => r.lote, r => r.huevos)].sort((a, b) => a[0] < b[0] ? -1 : 1);
+    return { cols: [['string', 'Lote'], ['number', 'Huevos recolectados']], rows, colors: ['s1'], legend: false, fmt: { 1: '#,##0' },
+      opts: { bar: { groupWidth: '55%' }, chartArea: { left: 110, bottom: 48 }, vAxis: { minValue: null }, hAxis: { format: '#,##0', gridlines: { color: '#e1e0d9' }, minValue: 0 } } };
+  } },
+  { id: 'c5', kind: 'Gauge', build() {
+    const t = tasas();
+    if (!t.length) return null;
+    return { cols: [['string', 'Indicador'], ['number', 'Tasa de postura (%)']], rows: [['Postura %', r2(t.reduce((s, x) => s + x, 0) / t.length)]],
+      opts: { min: 0, max: 100, greenFrom: 90, greenTo: 100, yellowFrom: 80, yellowTo: 90, redFrom: 0, redTo: 80, minorTicks: 5, majorTicks: ['0', '20', '40', '60', '80', '100'], width: 360, height: 300 } };
+  } },
+  { id: 'c6', kind: 'ColumnChart', build() {
+    return { cols: [['string', 'Lote'], ['number', 'Huevos por saco']], rows: efLote(), colors: ['s1'], legend: false, fmt: { 1: '#,##0.00' },
+      opts: { bar: { groupWidth: '40%' }, vAxis: { format: '#,##0', title: 'Huevos por saco', viewWindow: { min: 0 } }, chartArea: { bottom: 48 } } };
+  } }
+];
+
+function KPIS() {
+  const r1 = D.r01.filter(ok), t = tasas(), r4 = D.r04.filter(ok), ef = efLote();
+  const insp = sum(r4, r => r.insp), rech = sum(r4, r => r.rech);
+  return [
+    { l: 'Huevos recolectados', v: fmt(sum(r1, r => r.huevos)), s: new Set(r1.map(r => r.f)).size + ' días con registro' },
+    { l: 'Tasa de postura promedio', v: t.length ? fmt(t.reduce((s, x) => s + x, 0) / t.length, 2) + ' %' : '—', s: t.length + ' registros con dato de tasa' },
+    { l: 'Rechazo en ovoscopia', v: insp ? fmt(rech / insp * 100, 2) + ' %' : '—', s: fmt(rech) + ' de ' + fmt(insp) + ' huevos inspeccionados · vw_rep04' },
+    { l: 'Eficiencia media', v: ef.length ? fmt(ef.reduce((s, x) => s + x[1], 0) / ef.length, 1) : '—', s: 'huevos por saco de alimento' }
+  ];
+}
+</script>
+<script>init();</script>
+</body>
+</html>

@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inventarios y Compras</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7; --surface: #fcfcfb;
+    --text: #0b0b0b; --text-2: #52514e; --muted: #898781;
+    --grid: #e1e0d9; --baseline: #c3c2b7; --border: rgba(11,11,11,.10);
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
+    --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
+    --good: #0ca30c; --warning: #fab219; --critical: #d03b3b;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--text); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 28px 20px 40px; }
+  header h1 { margin: 0 0 4px; font-size: 24px; font-weight: 650; }
+  header p { margin: 0; color: var(--text-2); }
+  .filters { position: sticky; top: 0; z-index: 5; background: var(--page); margin-top: 18px; padding: 12px 0;
+             display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: flex-start; border-bottom: 1px solid var(--grid); }
+  .f { display: flex; flex-direction: column; gap: 4px; min-width: 150px; }
+  .f label { font-size: 12.5px; font-weight: 600; color: var(--text-2); }
+  .f select, .f input[type=date] { font: inherit; font-size: 13.5px; padding: 6px 8px; border: 1px solid var(--baseline);
+             border-radius: 8px; background: var(--surface); color: var(--text); min-height: 34px; }
+  .f select { min-width: 170px; max-width: 260px; }
+  .dr { display: flex; align-items: center; gap: 6px; }
+  .dr span { color: var(--muted); font-size: 12.5px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font: inherit; font-size: 12.5px; padding: 6px 11px; border-radius: 999px; border: 1px solid var(--baseline);
+          background: var(--surface); color: var(--text-2); cursor: pointer; min-height: 34px; }
+  .chip[aria-pressed=true] { background: var(--s1); border-color: var(--s1); color: #fff; }
+  .hint { font-size: 11.5px; color: var(--muted); max-width: 240px; line-height: 1.3; }
+  #reset { align-self: flex-start; margin-top: 21px; font: inherit; font-size: 13px; padding: 6px 12px; min-height: 34px;
+           border: 1px solid var(--baseline); border-radius: 8px; background: var(--surface); color: var(--text-2); cursor: pointer; }
+  #reset:hover, .chip:hover { border-color: var(--text-2); }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 18px 0; }
+  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .kpi .l { color: var(--text-2); font-size: 13px; }
+  .kpi .v { font-size: 28px; font-weight: 650; margin-top: 2px; }
+  .kpi .s { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 16px 10px; min-width: 0; }
+  .card.wide { grid-column: 1 / -1; }
+  .card h2 { margin: 0; font-size: 16px; font-weight: 650; }
+  .card .sub { margin: 2px 0 8px; color: var(--muted); font-size: 12.5px; }
+  .chart { width: 100%; height: 320px; }
+  .chart.tall { height: 380px; }
+  .empty { height: 100%; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13.5px; text-align: center; }
+  details { margin-top: 4px; }
+  summary { cursor: pointer; color: var(--text-2); font-size: 12.5px; padding: 4px 0; }
+  .dt { max-height: 240px; overflow: auto; margin: 6px 0 8px; }
+  .dt table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  .dt th, .dt td { text-align: left; padding: 3px 8px; border-bottom: 1px solid var(--grid); }
+  .dt th { color: var(--text-2); font-weight: 600; position: sticky; top: 0; background: var(--surface); }
+  .dt td.n { text-align: right; font-variant-numeric: tabular-nums; }
+  footer { margin-top: 20px; color: var(--text-2); font-size: 12.5px; }
+  footer ul { margin: 6px 0 0; padding-left: 18px; }
+  .google-visualization-table-table { font: 13.5px system-ui, sans-serif; width: 100%; }
+  .google-visualization-table-th { background: var(--page) !important; color: var(--text-2) !important; border-bottom: 1px solid var(--baseline) !important; font-weight: 600 !important; }
+  .google-visualization-table-td { border-bottom: 1px solid var(--grid) !important; color: var(--text); }
+  .google-visualization-table-tr-even td, .google-visualization-table-tr-odd td { background: var(--surface) !important; }
+  .google-visualization-table-tr-over td { background: #f0efec !important; }
+  td.st-crit { color: var(--critical) !important; font-weight: 650; }
+  td.st-low  { color: #8a5a00 !important; font-weight: 650; }
+  td.st-ok   { color: #006300 !important; font-weight: 650; }
+  td.st-none { color: var(--muted) !important; }
+  @media (max-width: 820px) { .grid { grid-template-columns: 1fr; } .chart { height: 300px; } .filters { position: static; } }
+  @media (forced-colors: active) { .card, .kpi, .chip { border: 1px solid CanvasText; } .chip[aria-pressed=true] { outline: 2px solid Highlight; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Inventarios y Compras</h1>
+    <p>Granja de Gallinas Ponedoras · vw_rep09, 10 y 16</p>
+  </header>
+  <section class="filters" id="filters" aria-label="Filtros"></section>
+  <section class="kpis" id="kpis" aria-live="polite"></section>
+  <main class="grid"><section class="card"><h2>Movimientos por tipo</h2><p class="sub">Cantidad de movimientos de inventario · vw_rep09</p><div class="chart" id="c1" role="img" aria-label="Movimientos por tipo"></div><details><summary>Ver tabla de datos</summary><div class="dt" id="c1-data"></div></details></section><section class="card"><h2>Existencias actuales</h2><p class="sub">Stock actual por insumo · escala logarítmica porque los valores van de 630 a 25,000 · vw_rep10</p><div class="chart" id="c2" role="img" aria-label="Existencias actuales"></div><details><summary>Ver tabla de datos</summary><div class="dt" id="c2-data"></div></details></section><section class="card"><h2>Compras por proveedor</h2><p class="sub">Monto estimado de las órdenes con monto registrado (las recibidas) · vw_rep16</p><div class="chart" id="c3" role="img" aria-label="Compras por proveedor"></div><details><summary>Ver tabla de datos</summary><div class="dt" id="c3-data"></div></details></section><section class="card"><h2>Compras por fecha</h2><p class="sub">Órdenes de compra emitidas por fecha de pedido · vw_rep16</p><div class="chart" id="c4" role="img" aria-label="Compras por fecha"></div><details><summary>Ver tabla de datos</summary><div class="dt" id="c4-data"></div></details></section><section class="card"><h2>Recepciones por proveedor</h2><p class="sub">Cantidad recibida por proveedor (solo órdenes recibidas) · vw_rep16</p><div class="chart" id="c5" role="img" aria-label="Recepciones por proveedor"></div><details><summary>Ver tabla de datos</summary><div class="dt" id="c5-data"></div></details></section><section class="card wide"><h2>Productos críticos</h2><p class="sub">Insumos ordenados por cobertura: stock actual dividido entre las salidas registradas. Menos de 1 = el stock no alcanza para repetir esas salidas · vw_rep09 + vw_rep10</p><div class="chart" id="c6" role="img" aria-label="Productos críticos"></div></section></main>
+  <footer>
+    <strong>Notas sobre los datos</strong>
+    <ul><li>Los filtros recalculan los seis gráficos y los indicadores de arriba; «Restablecer filtros» vuelve a la vista completa.</li><li>vw_rep16 no trae insumos y vw_rep09 no trae proveedor: el filtro de proveedor llega a los movimientos a través del proveedor de cada insumo en vw_rep10. El filtro de producto no afecta las compras.</li><li>Las existencias mezclan unidades (libras, kilos y litros); cada barra conserva la unidad de su insumo y no se suman entre sí.</li><li>Solo las órdenes recibidas tienen monto y cantidad pedida; las pendientes y canceladas aparecen en «Compras por fecha» pero no en los gráficos de monto y recepción.</li><li>La vista no define un punto de reorden, así que «crítico» se calculó con la cobertura (stock ÷ salidas registradas): menos de 1 = crítico, de 1 a 3 = bajo. La tabla usa siempre las salidas, sin importar el filtro de tipo de movimiento. Es un criterio propio y se puede ajustar.</li><li>El filtro incluye AJUSTE y MERMA, pero el vw_rep09 usado para este dashboard solo trae movimientos ENTRADA y SALIDA; AJUSTE y MERMA aparecen marcados (0).</li><li>Ningún insumo tiene cantidad vencida al cierre.</li></ul>
+  </footer>
+</div>
+<script src="https://www.gstatic.com/charts/loader.js"></script>
+<script>
+const DATA = {"r09": [{"f": "2026-10-06", "insumo": "L-Lisina", "tipo": "ENTRADA", "cant": 90.0}, {"f": "2026-09-01", "insumo": "L-Lisina", "tipo": "ENTRADA", "cant": 660.0}, {"f": "2026-10-05", "insumo": "DL-Metionina", "tipo": "ENTRADA", "cant": 120.0}, {"f": "2026-09-01", "insumo": "DL-Metionina", "tipo": "ENTRADA", "cant": 680.0}, {"f": "2026-10-05", "insumo": "Fosfato dicalcico", "tipo": "ENTRADA", "cant": 500.0}, {"f": "2026-09-01", "insumo": "Fosfato dicalcico", "tipo": "ENTRADA", "cant": 1700.0}, {"f": "2026-10-04", "insumo": "Sal yodada", "tipo": "ENTRADA", "cant": 300.0}, {"f": "2026-09-01", "insumo": "Sal yodada", "tipo": "ENTRADA", "cant": 1200.0}, {"f": "2026-10-04", "insumo": "Carbonato de calcio", "tipo": "ENTRADA", "cant": 995.0}, {"f": "2026-09-01", "insumo": "Carbonato de calcio", "tipo": "ENTRADA", "cant": 11155.0}, {"f": "2026-10-06", "insumo": "Aceite vegetal de soya", "tipo": "ENTRADA", "cant": 400.0}, {"f": "2026-09-01", "insumo": "Aceite vegetal de soya", "tipo": "ENTRADA", "cant": 1600.0}, {"f": "2026-10-05", "insumo": "Núcleo mineral", "tipo": "ENTRADA", "cant": 600.0}, {"f": "2026-09-01", "insumo": "Núcleo mineral", "tipo": "ENTRADA", "cant": 4520.0}, {"f": "2026-10-05", "insumo": "Premezcla vitaminas postura", "tipo": "ENTRADA", "cant": 300.0}, {"f": "2026-09-01", "insumo": "Premezcla vitaminas postura", "tipo": "ENTRADA", "cant": 5180.0}, {"f": "2026-10-04", "insumo": "Harina de soya", "tipo": "ENTRADA", "cant": 4000.0}, {"f": "2026-09-01", "insumo": "Harina de soya", "tipo": "ENTRADA", "cant": 33100.0}, {"f": "2026-10-04", "insumo": "Maíz amarillo molido", "tipo": "ENTRADA", "cant": 8000.0}, {"f": "2026-09-01", "insumo": "Maíz amarillo molido", "tipo": "ENTRADA", "cant": 57200.0}, {"f": "2026-10-12", "insumo": "L-Lisina", "tipo": "SALIDA", "cant": 40.0}, {"f": "2026-10-12", "insumo": "L-Lisina", "tipo": "SALIDA", "cant": 35.0}, {"f": "2026-10-12", "insumo": "DL-Metionina", "tipo": "SALIDA", "cant": 60.0}, {"f": "2026-10-12", "insumo": "DL-Metionina", "tipo": "SALIDA", "cant": 52.5}, {"f": "2026-10-12", "insumo": "Fosfato dicalcico", "tipo": "SALIDA", "cant": 800.0}, {"f": "2026-10-12", "insumo": "Fosfato dicalcico", "tipo": "SALIDA", "cant": 770.0}, {"f": "2026-10-12", "insumo": "Sal yodada", "tipo": "SALIDA", "cant": 200.0}, {"f": "2026-10-12", "insumo": "Sal yodada", "tipo": "SALIDA", "cant": 175.0}, {"f": "2026-10-12", "insumo": "Carbonato de calcio", "tipo": "SALIDA", "cant": 3150.0}, {"f": "2026-10-12", "insumo": "Carbonato de calcio", "tipo": "SALIDA", "cant": 3200.0}, {"f": "2026-10-12", "insumo": "Aceite vegetal de soya", "tipo": "SALIDA", "cant": 800.0}, {"f": "2026-10-12", "insumo": "Aceite vegetal de soya", "tipo": "SALIDA", "cant": 525.0}, {"f": "2026-10-12", "insumo": "Núcleo mineral", "tipo": "SALIDA", "cant": 1200.0}, {"f": "2026-10-12", "insumo": "Núcleo mineral", "tipo": "SALIDA", "cant": 1120.0}, {"f": "2026-10-12", "insumo": "Premezcla vitaminas postura", "tipo": "SALIDA", "cant": 1000.0}, {"f": "2026-10-12", "insumo": "Premezcla vitaminas postura", "tipo": "SALIDA", "cant": 980.0}, {"f": "2026-10-12", "insumo": "Harina de soya", "tipo": "SALIDA", "cant": 10000.0}, {"f": "2026-10-12", "insumo": "Harina de soya", "tipo": "SALIDA", "cant": 9100.0}, {"f": "2026-10-12", "insumo": "Maíz amarillo molido", "tipo": "SALIDA", "cant": 22000.0}, {"f": "2026-10-12", "insumo": "Maíz amarillo molido", "tipo": "SALIDA", "cant": 18200.0}], "r10": [{"insumo": "Maíz amarillo molido", "prov": "Semillas Certificadas de Maiz", "stock": 25000.0, "unidad": "LIBRAS", "cad": "2027-04-01", "venc": 0.0}, {"insumo": "Harina de soya", "prov": "Harinas y Subproductos del Trigo", "stock": 18000.0, "unidad": "LIBRAS", "cad": "2027-04-01", "venc": 0.0}, {"insumo": "Premezcla vitaminas postura", "prov": "Minerales y Vitaminas para Aves", "stock": 3500.0, "unidad": "LIBRAS", "cad": "2027-09-01", "venc": 0.0}, {"insumo": "Núcleo mineral", "prov": "Minerales y Vitaminas para Aves", "stock": 2800.0, "unidad": "LIBRAS", "cad": "2027-09-01", "venc": 0.0}, {"insumo": "Aceite vegetal de soya", "prov": "Aceites y Grasas Vegetales", "stock": 675.0, "unidad": "LITROS", "cad": "2027-08-01", "venc": 0.0}, {"insumo": "Carbonato de calcio", "prov": "Minerales y Vitaminas para Aves", "stock": 5800.0, "unidad": "LIBRAS", "cad": "2027-10-01", "venc": 0.0}, {"insumo": "Sal yodada", "prov": "Aditivos y Premezclas Avicolas", "stock": 1125.0, "unidad": "LIBRAS", "cad": "2027-10-01", "venc": 0.0}, {"insumo": "Fosfato dicalcico", "prov": "Molinos y Mezcladoras", "stock": 630.0, "unidad": "LIBRAS", "cad": "2027-06-15", "venc": 0.0}, {"insumo": "DL-Metionina", "prov": "Aditivos y Premezclas Avicolas", "stock": 687.5, "unidad": "KILOS", "cad": "2027-12-31", "venc": 0.0}, {"insumo": "L-Lisina", "prov": "Aditivos y Premezclas Avicolas", "stock": 675.0, "unidad": "KILOS", "cad": "2027-08-01", "venc": 0.0}], "r16": [{"f": "2026-09-28", "prov": "Compresores y Refrigeracion", "estado": "CANCELADA", "monto": null, "recibida": 0.0}, {"f": "2026-09-28", "prov": "Ventilacion Industr", "estado": "CANCELADA", "monto": null, "recibida": 0.0}, {"f": "2026-09-28", "prov": "Techos y Estructuras Metalicas", "estado": "CANCELADA", "monto": null, "recibida": 0.0}, {"f": "2026-09-23", "prov": "Semillas Certificadas de Maiz", "estado": "PENDIENTE", "monto": null, "recibida": 0.0}, {"f": "2026-09-23", "prov": "Farmacia Veterinaria Central", "estado": "PENDIENTE", "monto": null, "recibida": 0.0}, {"f": "2026-09-24", "prov": "Distribuidora de Empaque S.A.", "estado": "PENDIENTE", "monto": null, "recibida": 0.0}, {"f": "2026-09-24", "prov": "Repuestos Avicolas del Istmo", "estado": "PENDIENTE", "monto": null, "recibida": 0.0}, {"f": "2026-09-24", "prov": "Aditivos y Premezclas Avicolas", "estado": "PENDIENTE", "monto": null, "recibida": 0.0}, {"f": "2026-09-25", "prov": "Semillas y Granos del Sur", "estado": "PENDIENTE", "monto": null, "recibida": 0.0}, {"f": "2026-09-25", "prov": "Jeringas y Equipo Veterinario", "estado": "PENDIENTE", "monto": null, "recibida": 0.0}, {"f": "2026-09-25", "prov": "Laboratorios Sanitarios de Guatemala", "estado": "PENDIENTE", "monto": null, "recibida": 0.0}, {"f": "2026-09-26", "prov": "Desinfectantes Industriales Avicolas", "estado": "PENDIENTE", "monto": null, "recibida": 0.0}, {"f": "2026-09-26", "prov": "Molinos y Mezcladoras", "estado": "PENDIENTE", "monto": null, "recibida": 0.0}, {"f": "2026-09-26", "prov": "Bombillos LED para Galpon", "estado": "PENDIENTE", "monto": null, "recibida": 0.0}, {"f": "2026-09-27", "prov": "Cintas Transportadoras", "estado": "PENDIENTE", "monto": null, "recibida": 0.0}, {"f": "2026-09-27", "prov": "Bandejas y Charolas para Huevo", "estado": "PENDIENTE", "monto": null, "recibida": 0.0}, {"f": "2026-09-27", "prov": "Antibioticos Veterinarios S.A.", "estado": "PENDIENTE", "monto": null, "recibida": 0.0}, {"f": "2026-09-29", "prov": "Vitaminas Inyectables Chapinas", "estado": "PENDIENTE", "monto": null, "recibida": 0.0}, {"f": "2026-09-29", "prov": "Minerales y Vitaminas para Aves", "estado": "PENDIENTE", "monto": null, "recibida": 0.0}, {"f": "2026-09-30", "prov": "Compresores y Refrigeracion", "estado": "PENDIENTE", "monto": null, "recibida": 0.0}, {"f": "2026-09-22", "prov": "NutriAves Guatemala", "estado": "PENDIENTE", "monto": null, "recibida": 0.0}, {"f": "2026-09-22", "prov": "Incubadora Nacional S.A.", "estado": "PENDIENTE", "monto": null, "recibida": 0.0}, {"f": "2026-09-23", "prov": "Pollitas Ponedoras del Norte", "estado": "PENDIENTE", "monto": null, "recibida": 0.0}, {"f": "2026-09-24", "prov": "Construccion de Galpones", "estado": "PENDIENTE", "monto": null, "recibida": 0.0}, {"f": "2026-09-25", "prov": "Camiones Refrigerados", "estado": "PENDIENTE", "monto": null, "recibida": 0.0}, {"f": "2026-10-04", "prov": "Vacunas Avicolas de Centroamerica", "estado": "PENDIENTE", "monto": null, "recibida": 0.0}, {"f": "2026-10-05", "prov": "Desinfectantes Industriales Avicolas", "estado": "PENDIENTE", "monto": null, "recibida": 0.0}, {"f": "2026-10-05", "prov": "Bandejas y Charolas para Huevo", "estado": "PENDIENTE", "monto": null, "recibida": 0.0}, {"f": "2026-10-06", "prov": "Compresores y Refrigeracion", "estado": "PENDIENTE", "monto": null, "recibida": 0.0}, {"f": "2026-10-06", "prov": "Bombas y Sistemas de Agua", "estado": "PENDIENTE", "monto": null, "recibida": 0.0}, {"f": "2026-10-07", "prov": "Aditivos y Premezclas Avicolas", "estado": "PENDIENTE", "monto": null, "recibida": 0.0}, {"f": "2026-10-07", "prov": "Molinos y Mezcladoras", "estado": "PENDIENTE", "monto": null, "recibida": 0.0}, {"f": "2026-10-08", "prov": "Laboratorios Sanitarios de Guatemala", "estado": "PENDIENTE", "monto": null, "recibida": 0.0}, {"f": "2026-10-01", "prov": "Minerales y Vitaminas para Aves", "estado": "RECIBIDA", "monto": 4340.0, "recibida": 1295.0}, {"f": "2026-10-01", "prov": "NutriAves Guatemala", "estado": "RECIBIDA", "monto": 29600.0, "recibida": 12000.0}, {"f": "2026-10-02", "prov": "Minerales y Vitaminas para Aves", "estado": "RECIBIDA", "monto": 2250.0, "recibida": 500.0}, {"f": "2026-10-02", "prov": "Aditivos y Premezclas Avicolas", "estado": "RECIBIDA", "monto": 2160.0, "recibida": 120.0}, {"f": "2026-10-03", "prov": "NutriAves Guatemala", "estado": "RECIBIDA", "monto": 6980.0, "recibida": 490.0}, {"f": "2026-10-03", "prov": "Minerales y Vitaminas para Aves", "estado": "RECIBIDA", "monto": 13500.0, "recibida": 300.0}, {"f": "2026-10-04", "prov": "Minerales y Vitaminas para Aves", "estado": "RECIBIDA", "monto": 16800.0, "recibida": 600.0}]};
+</script>
+<script>
+const MES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const $ = id => document.getElementById(id);
+const fmt = (x, d = 0) => (x == null || isNaN(x)) ? '—' : x.toLocaleString('es-GT', { minimumFractionDigits: d, maximumFractionDigits: d });
+const lbl = d => { const p = d.split('-'); return p[2] + ' ' + MES[+p[1] - 1]; };
+const sum = (a, f) => a.reduce((s, x) => s + f(x), 0);
+const r2 = x => Math.round(x * 100) / 100;
+const byEs = (a, b) => a.localeCompare(b, 'es');
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+function groupSum(rows, kf, vf) {
+  const m = new Map();
+  rows.forEach(r => { const v = vf(r); if (v == null) return; const k = kf(r); m.set(k, (m.get(k) || 0) + v); });
+  return m;
+}
+const F = {};
+let ready = false;
+const inst = {};
+const inRange = d => (!F.fecha.from || d >= F.fecha.from) && (!F.fecha.to || d <= F.fecha.to);
+
+function initState() {
+  FILTERS.forEach(f => {
+    F[f.id] = f.type === 'select' ? '' : f.type === 'range' ? { from: '', to: '' } : new Set(f.options.map(o => o.v));
+  });
+}
+
+function buildFilters() {
+  let html = '';
+  FILTERS.forEach(f => {
+    html += '<div class="f"><label for="f-' + f.id + (f.type === 'range' ? '-from' : '') + '">' + f.label + '</label>';
+    if (f.type === 'select') {
+      html += '<select id="f-' + f.id + '"><option value="">Todos</option>' +
+        f.options.map(o => '<option value="' + esc(o) + '">' + esc(o) + '</option>').join('') + '</select>';
+    } else if (f.type === 'range') {
+      html += '<div class="dr"><input type="date" id="f-' + f.id + '-from" min="' + f.min + '" max="' + f.max + '" aria-label="Desde">' +
+        '<span>a</span><input type="date" id="f-' + f.id + '-to" min="' + f.min + '" max="' + f.max + '" aria-label="Hasta"></div>';
+    } else {
+      html += '<div class="chips" id="f-' + f.id + '" role="group" aria-label="' + f.label + '">' +
+        f.options.map(o => '<button type="button" class="chip" data-v="' + esc(o.v) + '" aria-pressed="true">' + o.l + (o.note || '') + '</button>').join('') + '</div>';
+    }
+    html += '<div class="hint">' + f.hint + '</div></div>';
+  });
+  html += '<button id="reset" type="button">Restablecer filtros</button>';
+  $('filters').innerHTML = html;
+  FILTERS.forEach(f => {
+    if (f.type === 'select') {
+      $('f-' + f.id).addEventListener('change', e => { F[f.id] = e.target.value; refresh(); });
+    } else if (f.type === 'range') {
+      $('f-' + f.id + '-from').addEventListener('change', e => { F[f.id].from = e.target.value; refresh(); });
+      $('f-' + f.id + '-to').addEventListener('change', e => { F[f.id].to = e.target.value; refresh(); });
+    } else {
+      $('f-' + f.id).querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => {
+        const v = b.getAttribute('data-v');
+        if (F[f.id].has(v)) F[f.id].delete(v); else F[f.id].add(v);
+        b.setAttribute('aria-pressed', F[f.id].has(v) ? 'true' : 'false');
+        refresh();
+      }));
+    }
+  });
+  $('reset').addEventListener('click', () => {
+    initState();
+    FILTERS.forEach(f => {
+      if (f.type === 'select') $('f-' + f.id).value = '';
+      else if (f.type === 'range') { $('f-' + f.id + '-from').value = ''; $('f-' + f.id + '-to').value = ''; }
+      else $('f-' + f.id).querySelectorAll('.chip').forEach(b => b.setAttribute('aria-pressed', 'true'));
+    });
+    refresh();
+  });
+}
+
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const TOK = { s1:'--s1', s2:'--s2', s3:'--s3', s4:'--s4', s5:'--s5', s6:'--s6', s7:'--s7', s8:'--s8', muted:'--muted', text2:'--text-2' };
+const tok = t => TOK[t] ? css(TOK[t]) : t;
+
+function merge(a, b) {
+  for (const k in b) {
+    if (b[k] && typeof b[k] === 'object' && !Array.isArray(b[k])) a[k] = merge(a[k] || {}, b[k]);
+    else a[k] = b[k];
+  }
+  return a;
+}
+
+function base() {
+  const ink = css('--text-2'), mu = css('--muted'), grid = css('--grid'), line = css('--baseline');
+  return {
+    backgroundColor: 'transparent', fontName: 'system-ui', fontSize: 12,
+    chartArea: { left: 72, top: 16, right: 16, bottom: 64 },
+    legend: { position: 'bottom', textStyle: { color: ink } },
+    hAxis: { textStyle: { color: mu }, baselineColor: line, gridlines: { color: 'transparent' }, titleTextStyle: { color: ink, italic: false } },
+    vAxis: { textStyle: { color: mu }, baselineColor: line, gridlines: { color: grid }, minorGridlines: { color: 'transparent' }, titleTextStyle: { color: ink, italic: false }, minValue: 0 },
+    tooltip: { textStyle: { color: '#0b0b0b' } },
+    animation: { duration: 350, easing: 'out' }
+  };
+}
+
+function toTable(res, kind) {
+  const dt = new google.visualization.DataTable();
+  res.cols.forEach(c => dt.addColumn(c[0], c[1]));
+  dt.addRows(res.rows.map(r => r.map((v, i) => {
+    if (v !== null && res.cols[i][0] === 'date') { const p = v.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); }
+    return v;
+  })));
+  Object.entries(res.fmt || {}).forEach(([i, pat]) => new google.visualization.NumberFormat({ pattern: pat }).format(dt, +i));
+  if (kind === 'Table' && res.statusCol !== undefined) {
+    res.rows.forEach((r, i) => {
+      const s = r[res.statusCol];
+      dt.setProperty(i, res.statusCol, 'className',
+        s.startsWith('CRÍTICO') ? 'st-crit' : s.startsWith('BAJO') ? 'st-low' : s.startsWith('OK') ? 'st-ok' : 'st-none');
+    });
+  }
+  return dt;
+}
+
+function dataView(c, res) {
+  const box = $(c.id + '-data');
+  if (!box) return;
+  if (!res || !res.rows.length) { box.innerHTML = ''; return; }
+  const head = '<tr>' + res.cols.map(x => '<th>' + x[1] + '</th>').join('') + '</tr>';
+  const body = res.rows.map(r => '<tr>' + r.map((v, i) => {
+    const isN = res.cols[i][0] === 'number';
+    let t = v === null ? '' : v;
+    if (isN && v !== null) t = fmt(v, (res.fmt && res.fmt[i] && res.fmt[i].includes('.00')) ? 2 : 0);
+    if (res.cols[i][0] === 'date' && v) t = lbl(v);
+    return '<td' + (isN ? ' class="n"' : '') + '>' + t + '</td>';
+  }).join('') + '</tr>').join('');
+  box.innerHTML = '<table>' + head + body + '</table>';
+}
+
+function drawChart(c, res) {
+  const el = $(c.id);
+  if (!res || !res.rows.length) {
+    el.innerHTML = '<div class="empty">Sin datos para los filtros seleccionados</div>';
+    delete inst[c.id];
+    dataView(c, null);
+    return;
+  }
+  if (!inst[c.id]) { el.innerHTML = ''; inst[c.id] = new google.visualization[c.kind](el); }
+  const o = base();
+  if (res.colors) o.colors = res.colors.map(tok);
+  if (c.kind === 'PieChart') {
+    merge(o, { legend: { position: 'right' }, chartArea: { left: 8, top: 8, right: 8, bottom: 8 },
+               pieSliceBorderColor: css('--surface'), pieSliceTextStyle: { color: '#fff', fontSize: 12 } });
+  }
+  if (c.kind === 'Gauge') merge(o, { redColor: css('--critical'), yellowColor: css('--warning'), greenColor: css('--good') });
+  merge(o, res.opts || {});
+  if (res.legend === false) o.legend = { position: 'none' };
+  inst[c.id].draw(toTable(res, c.kind), o);
+  if (c.kind !== 'Gauge' && c.kind !== 'Table') dataView(c, res);
+}
+
+function renderKpis() {
+  $('kpis').innerHTML = KPIS().map(k =>
+    '<div class="kpi"><div class="l">' + k.l + '</div><div class="v">' + k.v + '</div><div class="s">' + k.s + '</div></div>').join('');
+}
+
+function refresh() {
+  if (!ready) return;
+  CHARTS.forEach(c => drawChart(c, c.build()));
+  renderKpis();
+}
+
+function init() {
+  initState();
+  buildFilters();
+  google.charts.load('current', { packages: ['corechart', 'gauge', 'table'], language: 'es' });
+  google.charts.setOnLoadCallback(() => { ready = true; refresh(); });
+  let t;
+  window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => { Object.keys(inst).forEach(k => delete inst[k]); refresh(); }, 200); });
+}
+</script>
+<script>
+const D = DATA;
+const provOf = {};
+D.r10.forEach(r => { provOf[r.insumo] = r.prov; });
+const PRODS = D.r10.map(r => r.insumo).sort(byEs);
+const PROVS = [...new Set(D.r10.map(r => r.prov).concat(D.r16.map(r => r.prov)))].sort(byEs);
+const TIPOS = ['ENTRADA', 'SALIDA', 'AJUSTE', 'MERMA'];
+const TCOL = { ENTRADA: 's1', SALIDA: 's2', AJUSTE: 's3', MERMA: 's4' };
+const dates = D.r09.map(r => r.f).concat(D.r16.map(r => r.f)).sort();
+
+const FILTERS = [
+  { id: 'producto', type: 'select', label: 'Producto', options: PRODS, hint: 'Afecta movimientos, existencias y productos críticos' },
+  { id: 'proveedor', type: 'select', label: 'Proveedor', options: PROVS, hint: 'Afecta compras, recepciones, existencias y movimientos (por el proveedor de cada insumo)' },
+  { id: 'tipo', type: 'chips', label: 'Tipo de movimiento',
+    options: TIPOS.map(t => ({ v: t, l: t, note: D.r09.some(r => r.tipo === t) ? '' : ' (0)' })),
+    hint: 'Afecta «Movimientos por tipo»' + (TIPOS.filter(t => !D.r09.some(r => r.tipo === t)).length ? '. Los tipos marcados (0) no tienen registros' : '') },
+  { id: 'fecha', type: 'range', label: 'Fecha', min: dates[0], max: dates[dates.length - 1], hint: 'Afecta movimientos y compras (las existencias son al cierre)' }
+];
+
+const base09 = r => (!F.producto || r.insumo === F.producto) && (!F.proveedor || provOf[r.insumo] === F.proveedor) && inRange(r.f);
+const ok09 = r => base09(r) && F.tipo.has(r.tipo);
+const ok10 = r => (!F.producto || r.insumo === F.producto) && (!F.proveedor || r.prov === F.proveedor);
+const ok16 = r => (!F.proveedor || r.prov === F.proveedor) && inRange(r.f);
+
+function tableRows() {
+  const sal = {};
+  D.r09.filter(r => r.tipo === 'SALIDA' && base09(r)).forEach(r => { sal[r.insumo] = (sal[r.insumo] || 0) + r.cant; });
+  const rows = D.r10.filter(ok10).map(r => {
+    const sa = sal[r.insumo] || 0, cov = sa ? r.stock / sa : null;
+    const st = cov == null ? 'SIN SALIDAS –' : cov < 1 ? 'CRÍTICO ▼' : cov < 3 ? 'BAJO ●' : 'OK ✓';
+    return [r.insumo, r.stock, r.unidad, r2(sa), cov == null ? null : r2(cov), r.cad, r.venc, st];
+  });
+  rows.sort((a, b) => ((a[4] == null) - (b[4] == null)) || (a[4] - b[4]));
+  return rows;
+}
+
+const CHARTS = [
+  { id: 'c1', kind: 'PieChart', build() {
+    const m = groupSum(D.r09.filter(ok09), r => r.tipo, () => 1);
+    const present = TIPOS.filter(t => m.has(t));
+    return { cols: [['string', 'Tipo de movimiento'], ['number', 'Movimientos']], rows: present.map(t => [t, m.get(t)]),
+      colors: present.map(t => TCOL[t]), opts: { pieHole: 0.45, pieSliceText: 'value' } };
+  } },
+  { id: 'c2', kind: 'ColumnChart', build() {
+    const rows = D.r10.filter(ok10).sort((a, b) => b.stock - a.stock).map(r => [r.insumo, r.stock]);
+    return { cols: [['string', 'Insumo'], ['number', 'Stock actual']], rows, colors: ['s1'], legend: false, fmt: { 1: '#,##0.00' },
+      opts: { bar: { groupWidth: '60%' }, hAxis: { slantedText: true, slantedTextAngle: 40 }, vAxis: { format: '#,##0', logScale: true, minValue: 100, title: 'Stock (escala logarítmica)' }, chartArea: { bottom: 96 } } };
+  } },
+  { id: 'c3', kind: 'BarChart', build() {
+    const rows = [...groupSum(D.r16.filter(ok16), r => r.prov, r => r.monto)].sort((a, b) => b[1] - a[1]);
+    return { cols: [['string', 'Proveedor'], ['number', 'Monto estimado']], rows, colors: ['s1'], legend: false, fmt: { 1: '#,##0.00' },
+      opts: { bar: { groupWidth: '45%' }, chartArea: { left: 190, bottom: 48 }, hAxis: { format: '#,##0', gridlines: { color: '#e1e0d9' }, minValue: 0 }, vAxis: { minValue: null } } };
+  } },
+  { id: 'c4', kind: 'LineChart', build() {
+    const rows = [...groupSum(D.r16.filter(ok16), r => r.f, () => 1)].sort((a, b) => a[0] < b[0] ? -1 : 1);
+    return { cols: [['date', 'Fecha de pedido'], ['number', 'Órdenes de compra']], rows, colors: ['s1'], legend: false,
+      opts: { pointSize: 6, lineWidth: 2, hAxis: { format: 'd MMM' }, vAxis: { title: 'Órdenes', format: '#', viewWindow: { min: 0 } } } };
+  } },
+  { id: 'c5', kind: 'ColumnChart', build() {
+    const rows = [...groupSum(D.r16.filter(ok16), r => r.prov, r => r.recibida)].filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]);
+    return { cols: [['string', 'Proveedor'], ['number', 'Cantidad recibida']], rows, colors: ['s1'], legend: false, fmt: { 1: '#,##0.00' },
+      opts: { bar: { groupWidth: '40%' }, vAxis: { format: '#,##0', title: 'Cantidad recibida' }, chartArea: { bottom: 56 } } };
+  } },
+  { id: 'c6', kind: 'Table', build() {
+    return { cols: [['string', 'Insumo'], ['number', 'Stock actual'], ['string', 'Unidad'], ['number', 'Salidas registradas'],
+        ['number', 'Cobertura (stock ÷ salidas)'], ['string', 'Caducidad más próxima'], ['number', 'Vencido al cierre'], ['string', 'Estado']],
+      rows: tableRows(), statusCol: 7, fmt: { 1: '#,##0.00', 3: '#,##0.00', 4: '0.00', 6: '#,##0.00' },
+      opts: { allowHtml: false, width: '100%', page: 'disable' } };
+  } }
+];
+
+function KPIS() {
+  const r9 = D.r09.filter(ok09), r10 = D.r10.filter(ok10), r16 = D.r16.filter(ok16), tr = tableRows();
+  const cnt = t => r9.filter(r => r.tipo === t).length, est = e => r16.filter(r => r.estado === e).length;
+  const otros = r9.length - cnt('ENTRADA') - cnt('SALIDA');
+  return [
+    { l: 'Insumos en existencia', v: fmt(r10.length), s: 'vw_rep10' },
+    { l: 'Movimientos de inventario', v: fmt(r9.length), s: cnt('ENTRADA') + ' entradas · ' + cnt('SALIDA') + ' salidas' + (otros ? ' · ' + otros + ' otros' : '') },
+    { l: 'Órdenes de compra', v: fmt(r16.length), s: est('RECIBIDA') + ' recibidas · ' + est('PENDIENTE') + ' pendientes · ' + est('CANCELADA') + ' canceladas' },
+    { l: 'Monto de órdenes recibidas', v: fmt(sum(r16.filter(r => r.estado === 'RECIBIDA'), r => r.monto || 0), 2), s: 'suma del monto estimado' },
+    { l: 'Insumos en estado crítico', v: fmt(tr.filter(r => r[7].startsWith('CRÍTICO')).length), s: 'cobertura menor a 1' }
+  ];
+}
+</script>
+<script>init();</script>
+</body>
+</html>

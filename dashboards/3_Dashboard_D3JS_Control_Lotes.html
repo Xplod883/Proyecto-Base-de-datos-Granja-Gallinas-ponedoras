@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>3_Dashboard_D3JS_Control_Lotes</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+:root{--bg:#f3f6fa;--card:#fff;--ink:#172536;--muted:#6b7b8d;--line:#e5ebf1;--navy:#18324b;--blue:#3778b8;--teal:#279b91;--amber:#d99a35;--red:#d45b5b;--green:#3a9870}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font:14px/1.45 Inter,Segoe UI,Arial,sans-serif;color:var(--ink)}
+header{background:linear-gradient(115deg,#18324b,#244b65);color:#fff;padding:28px max(22px,calc((100vw - 1400px)/2));}
+.eyebrow{font-size:11px;letter-spacing:1.6px;text-transform:uppercase;color:#b9d3e4;font-weight:700}
+h1{margin:7px 0 5px;font-size:27px;letter-spacing:-.5px}header p{margin:0;color:#d2e0e9;max-width:780px}
+.wrap{max-width:1400px;margin:22px auto;padding:0 22px 38px}.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+select,input{background:#fff;border:1px solid var(--line);border-radius:9px;padding:10px 12px;color:var(--ink);font:inherit;outline:none}
+input{min-width:230px;flex:1}.btn{border:0;background:var(--navy);color:#fff;border-radius:9px;padding:10px 14px;cursor:pointer;font-weight:600}.btn:hover{background:#294d68}
+.grid{display:grid;gap:14px}.kpis{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:14px}.panelgrid{grid-template-columns:1.1fr .9fr;margin-bottom:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:17px 18px;box-shadow:0 4px 16px rgba(24,50,75,.035);min-width:0}
+.klabel{font-size:12px;color:var(--muted);font-weight:600}.kvalue{font-size:28px;font-weight:750;letter-spacing:-.8px;margin-top:7px}.kfoot{font-size:11px;color:var(--muted);margin-top:2px}
+.section-title{font-size:15px;font-weight:750;margin:0 0 3px}.sub{color:var(--muted);font-size:12px;margin:0 0 14px}
+.chart{width:100%;height:230px;display:block;overflow:visible}.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--muted)}.legend span{display:flex;align-items:center;gap:5px}.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:800px}th{text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:11px 9px;border-bottom:1px solid var(--line)}td{padding:12px 9px;border-bottom:1px solid #edf1f5;font-size:12px}tbody tr:hover{background:#f8fafc}.code{font-family:Consolas,monospace;color:#4c6074}.pill{display:inline-block;padding:4px 8px;border-radius:20px;font-size:10px;font-weight:750;white-space:nowrap}.p-ok{background:#e6f4ed;color:#287a56}.p-soon{background:#fff3dc;color:#9a6814}.p-alert{background:#fde9e9;color:#a83f3f}
+.note{margin-top:14px;padding:12px 14px;border:1px solid #dce7ef;border-radius:10px;background:#f8fbfd;color:#5e7183;font-size:11px}
+.empty{text-align:center;color:var(--muted);padding:25px}.footer{color:#8a98a7;font-size:11px;text-align:right;margin-top:12px}
+@media(max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}.panelgrid{grid-template-columns:1fr}}
+@media(max-width:520px){h1{font-size:22px}.wrap{padding:0 12px 25px}.kpis{gap:8px}.card{padding:14px}.kvalue{font-size:24px}}
+</style></head>
+<body>
+<header><div class="eyebrow">Logística · Inventarios · Dashboard 03</div><h1>Control de lotes y fechas de caducidad</h1><p>Seguimiento preventivo de lotes, fechas de vencimiento y orden sugerido de salida bajo el criterio FEFO (primero en vencer, primero en salir).</p></header>
+<main class="wrap">
+<div class="toolbar">
+<input id="search" placeholder="Buscar producto o código de lote…">
+<select id="status"><option value="all">Todos los estados</option><option value="Vencido">Vencidos</option><option value="Próximo">Próximos a vencer (≤180 días)</option><option value="Vigente">Vigentes (&gt;180 días)</option></select>
+<select id="sort"><option value="date">Ordenar: vencimiento más cercano</option><option value="product">Ordenar: producto</option><option value="qty">Ordenar: cantidad mayor</option></select>
+<button class="btn" id="reset">Restablecer</button>
+</div>
+<section class="grid kpis">
+<div class="card"><div class="klabel">Lotes registrados</div><div class="kvalue" id="kLots">—</div><div class="kfoot">Registros incluidos en el catálogo</div></div>
+<div class="card"><div class="klabel">Productos con lotes</div><div class="kvalue" id="kProducts">—</div><div class="kfoot">Insumos con trazabilidad de lote</div></div>
+<div class="card"><div class="klabel">Próximo vencimiento</div><div class="kvalue" id="kNext">—</div><div class="kfoot" id="kNextName">Fecha más cercana registrada</div></div>
+<div class="card"><div class="klabel">Lotes próximos a vencer</div><div class="kvalue" id="kSoon">—</div><div class="kfoot">Dentro de los próximos 180 días</div></div>
+</section>
+<section class="grid panelgrid">
+<div class="card"><h2 class="section-title">Calendario de vencimientos</h2><p class="sub">Cantidad de lotes que vencen por mes</p><svg id="expiryChart" class="chart" role="img" aria-label="Lotes por mes de vencimiento"></svg></div>
+<div class="card"><h2 class="section-title">Lotes por estado</h2><p class="sub">Clasificación calculada respecto a la fecha actual</p><svg id="statusChart" class="chart" role="img" aria-label="Distribución de lotes por estado"></svg><div class="legend"><span><i class="dot" style="background:#d45b5b"></i>Vencido</span><span><i class="dot" style="background:#d99a35"></i>Próximo</span><span><i class="dot" style="background:#3a9870"></i>Vigente</span></div></div>
+</section>
+<section class="card">
+<h2 class="section-title">Detalle y priorización FEFO</h2><p class="sub">Los lotes se ordenan por fecha de caducidad ascendente para orientar la salida de inventario.</p>
+<div class="tablewrap"><table><thead><tr><th>Prioridad</th><th>Código de lote</th><th>Producto</th><th>Cantidad del lote</th><th>Unidad</th><th>Caducidad</th><th>Días restantes</th><th>Estado</th></tr></thead><tbody id="rows"></tbody></table><div id="empty" class="empty" hidden>No hay lotes que coincidan con los filtros.</div></div>
+<div class="note"><b>Nota metodológica:</b> el análisis utiliza el archivo Lotes.csv y relaciona cada lote con su producto y unidad de medida. Los estados se calculan desde la fecha actual del equipo: vencido si la fecha ya pasó, próximo si vence en 180 días o menos y vigente si supera ese plazo. Las cantidades no se suman entre productos porque utilizan unidades diferentes. La prioridad FEFO es una recomendación de orden de salida, no confirma disponibilidad física ni ubicación del lote.</div>
+</section>
+<div class="footer">Dashboard 03 · D3.js · Datos de demostración académica de la base de inventarios</div>
+</main>
+<script>
+const DATA=[{"idLote": 1, "idInsumo": 6, "codigo_lote": "LOT-IN-2026-001", "fecha_caducidad": "2027-10-01", "cantidad": 995.0, "producto": "Carbonato de calcio", "unidad_medida": "LIBRAS", "stock_producto": 5800.0, "proveedor": "Minerales y Vitaminas para Aves"}, {"idLote": 2, "idInsumo": 7, "codigo_lote": "LOT-IN-2026-002", "fecha_caducidad": "2027-10-01", "cantidad": 300.0, "producto": "Sal yodada", "unidad_medida": "LIBRAS", "stock_producto": 1125.0, "proveedor": "Aditivos y Premezclas Avicolas"}, {"idLote": 3, "idInsumo": 1, "codigo_lote": "LOT-IN-2026-003", "fecha_caducidad": "2027-04-01", "cantidad": 8000.0, "producto": "Maíz amarillo molido", "unidad_medida": "LIBRAS", "stock_producto": 25000.0, "proveedor": "Semillas Certificadas de Maiz"}, {"idLote": 4, "idInsumo": 2, "codigo_lote": "LOT-IN-2026-004", "fecha_caducidad": "2027-04-01", "cantidad": 4000.0, "producto": "Harina de soya", "unidad_medida": "LIBRAS", "stock_producto": 18000.0, "proveedor": "Harinas y Subproductos del Trigo"}, {"idLote": 5, "idInsumo": 8, "codigo_lote": "LOT-IN-2026-005", "fecha_caducidad": "2027-06-15", "cantidad": 500.0, "producto": "Fosfato dicalcico", "unidad_medida": "LIBRAS", "stock_producto": 630.0, "proveedor": "Molinos y Mezcladoras"}, {"idLote": 6, "idInsumo": 9, "codigo_lote": "LOT-IN-2026-006", "fecha_caducidad": "2027-12-31", "cantidad": 120.0, "producto": "DL-Metionina", "unidad_medida": "KILOS", "stock_producto": 687.5, "proveedor": "Aditivos y Premezclas Avicolas"}, {"idLote": 7, "idInsumo": 5, "codigo_lote": "LOT-IN-2026-007", "fecha_caducidad": "2027-08-01", "cantidad": 400.0, "producto": "Aceite vegetal de soya", "unidad_medida": "LITROS", "stock_producto": 675.0, "proveedor": "Aceites y Grasas Vegetales"}, {"idLote": 8, "idInsumo": 10, "codigo_lote": "LOT-IN-2026-008", "fecha_caducidad": "2027-08-01", "cantidad": 90.0, "producto": "L-Lisina", "unidad_medida": "KILOS", "stock_producto": 675.0, "proveedor": "Aditivos y Premezclas Avicolas"}, {"idLote": 9, "idInsumo": 3, "codigo_lote": "LOT-IN-2026-009", "fecha_caducidad": "2027-09-01", "cantidad": 300.0, "producto": "Premezcla vitaminas postura", "unidad_medida": "LIBRAS", "stock_producto": 3500.0, "proveedor": "Minerales y Vitaminas para Aves"}, {"idLote": 10, "idInsumo": 4, "codigo_lote": "LOT-IN-2026-010", "fecha_caducidad": "2027-09-01", "cantidad": 600.0, "producto": "Núcleo mineral", "unidad_medida": "LIBRAS", "stock_producto": 2800.0, "proveedor": "Minerales y Vitaminas para Aves"}];
+const today=new Date(); today.setHours(0,0,0,0);
+const fmtDate=d=>d3.timeFormat("%d/%m/%Y")(d);
+const dateOf=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
+const enriched=DATA.map(d=>{const exp=dateOf(d.fecha_caducidad);const days=Math.ceil((exp-today)/86400000);return {...d,exp,days,status:days<0?"Vencido":days<=180?"Próximo":"Vigente"};});
+const colors={Vencido:"#d45b5b",Próximo:"#d99a35",Vigente:"#3a9870"};
+const num=n=>new Intl.NumberFormat("es-GT",{maximumFractionDigits:2}).format(n);
+function drawExpiry(data){
+ const svg=d3.select("#expiryChart");svg.selectAll("*").remove();
+ const w=svg.node().clientWidth||500,h=230,m={top:12,right:14,bottom:38,left:32};
+ svg.attr("viewBox",`0 0 ${w} ${h}`);
+ const grouped=d3.rollups(data,v=>v.length,d=>d3.timeFormat("%b %y")(d.exp)).map(([month,count])=>({month,count})).sort((a,b)=>{const da=d3.timeParse("%b %y")(a.month),db=d3.timeParse("%b %y")(b.month);return da-db});
+ const x=d3.scaleBand().domain(grouped.map(d=>d.month)).range([m.left,w-m.right]).padding(.25);
+ const y=d3.scaleLinear().domain([0,d3.max(grouped,d=>d.count)||1]).nice().range([h-m.bottom,m.top]);
+ svg.append("g").attr("transform",`translate(0,${h-m.bottom})`).call(d3.axisBottom(x)).selectAll("text").attr("fill","#718196").attr("font-size",10);
+ svg.append("g").attr("transform",`translate(${m.left},0)`).call(d3.axisLeft(y).ticks(4).tickFormat(d3.format("d"))).call(g=>g.select(".domain").remove()).call(g=>g.selectAll("text").attr("fill","#718196").attr("font-size",10));
+ svg.selectAll(".bar").data(grouped).join("rect").attr("x",d=>x(d.month)).attr("y",d=>y(d.count)).attr("width",x.bandwidth()).attr("height",d=>y(0)-y(d.count)).attr("rx",5).attr("fill","#3778b8");
+ svg.selectAll(".label").data(grouped).join("text").attr("x",d=>x(d.month)+x.bandwidth()/2).attr("y",d=>y(d.count)-6).attr("text-anchor","middle").attr("font-size",11).attr("font-weight",700).attr("fill","#40566b").text(d=>d.count);
+ if(!grouped.length)svg.append("text").attr("x",w/2).attr("y",h/2).attr("text-anchor","middle").attr("fill","#718196").text("Sin datos");
+}
+function drawStatus(data){
+ const svg=d3.select("#statusChart");svg.selectAll("*").remove();const w=svg.node().clientWidth||400,h=230;svg.attr("viewBox",`0 0 ${w} ${h}`);
+ const counts=["Vencido","Próximo","Vigente"].map(k=>({name:k,value:data.filter(d=>d.status===k).length})).filter(d=>d.value>0);
+ if(!counts.length){svg.append("text").attr("x",w/2).attr("y",h/2).attr("text-anchor","middle").attr("fill","#718196").text("Sin datos");return;}
+ const radius=Math.min(w*.27,85),g=svg.append("g").attr("transform",`translate(${w*.34},${h/2})`);
+ const pie=d3.pie().sort(null).value(d=>d.value),arc=d3.arc().innerRadius(radius*.62).outerRadius(radius);
+ g.selectAll("path").data(pie(counts)).join("path").attr("d",arc).attr("fill",d=>colors[d.data.name]).attr("stroke","#fff").attr("stroke-width",3);
+ g.append("text").attr("text-anchor","middle").attr("dy","-.1em").attr("font-size",27).attr("font-weight",750).attr("fill","#172536").text(d3.sum(counts,d=>d.value));
+ g.append("text").attr("text-anchor","middle").attr("dy","1.5em").attr("font-size",10).attr("fill","#718196").text("lotes");
+ const legend=svg.append("g").attr("transform",`translate(${w*.64},${h/2-counts.length*23})`);
+ counts.forEach((d,i)=>{const row=legend.append("g").attr("transform",`translate(0,${i*46})`);row.append("circle").attr("r",5).attr("fill",colors[d.name]);row.append("text").attr("x",13).attr("y",4).attr("font-size",11).attr("fill","#65778a").text(d.name);row.append("text").attr("x",13).attr("y",20).attr("font-size",15).attr("font-weight",700).attr("fill","#172536").text(`${d.value} lotes`);});
+}
+function render(){
+ const q=document.getElementById("search").value.trim().toLowerCase(),st=document.getElementById("status").value,sort=document.getElementById("sort").value;
+ let data=enriched.filter(d=>(st==="all"||d.status===st)&&(`${d.producto} ${d.codigo_lote}`.toLowerCase().includes(q)));
+ data.sort(sort==="product"?(a,b)=>a.producto.localeCompare(b.producto):sort==="qty"?(a,b)=>b.cantidad-a.cantidad:(a,b)=>a.exp-b.exp);
+ document.getElementById("kLots").textContent=enriched.length;
+ document.getElementById("kProducts").textContent=new Set(enriched.map(d=>d.idInsumo)).size;
+ const next=[...enriched].sort((a,b)=>a.exp-b.exp)[0];
+ document.getElementById("kNext").textContent=next?fmtDate(next.exp):"—";
+ document.getElementById("kNextName").textContent=next?next.producto:"Sin registros";
+ document.getElementById("kSoon").textContent=enriched.filter(d=>d.status==="Próximo").length;
+ const tbody=document.getElementById("rows");tbody.innerHTML="";
+ data.forEach((d,i)=>{const tr=document.createElement("tr");const priority=i+1;const cls=d.status==="Vencido"?"p-alert":d.status==="Próximo"?"p-soon":"p-ok";const days=d.days<0?`Venció hace ${Math.abs(d.days)} días`:`${d.days} días`;tr.innerHTML=`<td><b>#${priority}</b></td><td class="code">${d.codigo_lote}</td><td><b>${d.producto}</b><br><span style="color:#8392a1;font-size:10px">${d.proveedor||""}</span></td><td>${num(d.cantidad)}</td><td>${d.unidad_medida}</td><td>${fmtDate(d.exp)}</td><td>${days}</td><td><span class="pill ${cls}">${d.status}</span></td>`;tbody.appendChild(tr);});
+ document.getElementById("empty").hidden=data.length!==0;
+ drawExpiry(enriched);drawStatus(enriched);
+}
+["search","status","sort"].forEach(id=>document.getElementById(id).addEventListener(id==="search"?"input":"change",render));
+document.getElementById("reset").addEventListener("click",()=>{document.getElementById("search").value="";document.getElementById("status").value="all";document.getElementById("sort").value="date";render();});
+window.addEventListener("resize",()=>{drawExpiry(enriched);drawStatus(enriched);});
+render();
+</script></body></html>
