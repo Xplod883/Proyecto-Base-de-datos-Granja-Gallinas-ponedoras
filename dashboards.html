@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+
+<title>Centro de Analítica y Dashboards</title>
+
+<link rel="stylesheet" href="css/dashboard.css">
+
+<style>
+
+.main-dashboard{
+    margin-left:260px;
+    width:calc(100% - 260px);
+    padding:0;
+}
+
+.dash-header{
+    padding:20px 30px;
+    background:#ffffff;
+    border-bottom:1px solid #e2e8f0;
+}
+
+.dashboard-viewer{
+    width:100%;
+    height:calc(100vh - 75px);
+    overflow:hidden;
+}
+
+#dashboard-frame{
+    width:100%;
+    height:100%;
+    border:none;
+}
+
+.sidebar-menu{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+}
+
+.menu-label{
+    margin-top:15px;
+}
+
+.sidebar-header{
+    text-align:center;
+    padding:20px 15px;
+}
+
+.sidebar-logo{
+    width:80px;
+    height:80px;
+    border-radius:50%;
+    background:white;
+    padding:6px;
+    object-fit:contain;
+    margin:0 auto 12px auto;
+    display:block;
+}
+
+</style>
+
+</head>
+
+<body class="dashboard-body">
+
+    <aside class="sidebar">
+
+        <div class="sidebar-header">
+            <img
+                src="/assets/logo.png"
+                alt="Logo Granja El Nido"
+                class="sidebar-logo">
+        
+            <h2>Avícola 360</h2>
+            <p class="subtitle">Granja El Nido</p>
+        </div>
+
+        <nav class="sidebar-menu">
+
+            <div class="menu-label">
+                GOOGLE CHARTS
+            </div>
+
+            <button
+                class="dash-btn active"
+                onclick="cargarDashboard(
+                'dashboards/dashboard_google_charts_1_produccion_calidad.html',
+                'Google Charts #1 - Producción y Calidad',
+                this)">
+                🥚 Producción y Calidad
+            </button>
+
+            <button
+                class="dash-btn"
+                onclick="cargarDashboard(
+                'dashboards/dashboard_google_charts_2_inventarios_compras.html',
+                'Google Charts #2 - Inventarios y Compras',
+                this)">
+                📦 Inventarios y Compras
+            </button>
+
+            <button
+                class="dash-btn"
+                onclick="cargarDashboard(
+                'dashboards/dashboard_google_charts_3_ventas_comercializacion.html',
+                'Google Charts #3 - Ventas y Comercialización',
+                this)">
+                💰 Ventas y Comercialización
+            </button>
+
+            <div class="menu-label">
+                D3.JS
+            </div>
+
+            <button
+                class="dash-btn"
+                onclick="cargarDashboard(
+                'dashboards/Dashboard_D3JS_Inventarios.html',
+                'D3JS #1 - Inventarios y Movimientos',
+                this)">
+                📊 Inventarios y Movimientos
+            </button>
+
+            <button
+                class="dash-btn"
+                onclick="cargarDashboard(
+                'dashboards/2_Dashboard_D3JS_Inventarios.html',
+                'D3JS #2 - Proveedores y Abastecimiento',
+                this)">
+                🚚 Proveedores y Abastecimiento
+            </button>
+
+            <button
+    class="dash-btn"
+    onclick="cargarDashboard(
+    'dashboards/3_Dashboard_D3JS_Control_Lotes.html',
+    'D3JS #3 - Control de Lotes y Caducidad',
+    this)">
+    📋 Control de Lotes y Caducidad
+</button>
+
+            <div class="menu-label">
+    POWER BI
+</div>
+
+<button class="dash-btn"
+onclick="cargarPowerBIDashboard(
+'https://app.powerbi.com/view?r=eyJrIjoiNDBlMWVhZjAtYTljNC00ZjFmLWIzMzItOTRkZTQzM2JjMTI0IiwidCI6IjVmNTNiNGNlLTYzZDQtNGVlOC04OGQyLTIyZjBiMmQ0YjI3YSIsImMiOjR9',
+'Power BI - Ejecutivo y Producción',
+this)">
+📊 Ejecutivo (Carlos)
+</button>
+
+<button class="dash-btn"
+onclick="cargarPowerBIDashboard(
+'https://app.powerbi.com/view?r=eyJrIjoiOGU1NTIxOTMtZDI0OS00MGI0LTk4YTYtNGQ4ZmE0NzZiZWQwIiwidCI6IjVmNTNiNGNlLTYzZDQtNGVlOC04OGQyLTIyZjBiMmQ0YjI3YSIsImMiOjR9',
+'Power BI - Producción de Huevos',
+this)">
+🥚 Producción (Fernando)
+</button>
+
+<button class="dash-btn"
+onclick="cargarPowerBIDashboard(
+'https://app.powerbi.com/view?r=eyJrIjoiYzM1MzFhMzctNDM5Yi00MmIyLWI0Y2ItMjMyYjc5MmU1Nzg4IiwidCI6IjVmNTNiNGNlLTYzZDQtNGVlOC04OGQyLTIyZjBiMmQ0YjI3YSIsImMiOjR9',
+'Power BI - Alimentación',
+this)">
+🌽 Alimentación (Sinay)
+</button>
+
+<button class="dash-btn"
+onclick="cargarPowerBIDashboard(
+'https://app.powerbi.com/view?r=eyJrIjoiMmFhYzU3Y2ItYjE0OS00ZTA5LWE0MjgtOTBlYzA4OTA5Yjc3IiwidCI6IjVmNTNiNGNlLTYzZDQtNGVlOC04OGQyLTIyZjBiMmQ0YjI3YSIsImMiOjR9',
+'Power BI - Salud Animal',
+this)">
+💉 Salud Animal (Gabriel)
+</button>
+
+<button class="dash-btn"
+onclick="cargarPowerBIDashboard(
+'https://app.powerbi.com/view?r=eyJrIjoiZjY1OTI0N2YtZDQ4MS00NGQyLTg2MGEtNzVhOTYwYzZiNGQxIiwidCI6IjVmNTNiNGNlLTYzZDQtNGVlOC04OGQyLTIyZjBiMmQ0YjI3YSIsImMiOjR9',
+'Power BI - Inventarios',
+this)">
+📦 Inventarios (Edson)
+</button>
+
+<button class="dash-btn"
+onclick="cargarPowerBIDashboard(
+'https://app.powerbi.com/view?r=eyJrIjoiN2E3NzliNjUtZTg3OS00OWY4LTg5NzgtYmUzZjJkZjUyNWVhIiwidCI6IjVmNTNiNGNlLTYzZDQtNGVlOC04OGQyLTIyZjBiMmQ0YjI3YSIsImMiOjR9',
+'Power BI - Compras y Abastecimiento',
+this)">
+🛒 Compras (Mota)
+</button>
+
+<button class="dash-btn"
+onclick="cargarPowerBIDashboard(
+'https://app.powerbi.com/view?r=eyJrIjoiYTc1ZTA2YWEtZGU3Ny00YmQ3LWFmODEtYjBmYTY5NDZiYjY5IiwidCI6IjVmNTNiNGNlLTYzZDQtNGVlOC04OGQyLTIyZjBiMmQ0YjI3YSIsImMiOjR9',
+'Power BI - Ventas y Comercialización',
+this)">
+💰 Ventas (Ángel)
+</button>
+
+        </nav>
+
+        <div class="sidebar-footer">
+
+            <a href="index.html" class="btn-back">
+                ⬅ Regresar al Inicio
+            </a>
+
+        </div>
+
+    </aside>
+
+    <main class="main-dashboard">
+
+        <div class="dash-header">
+
+            <h1 id="dashboard-title">
+                Google Charts #1 - Producción y Calidad
+            </h1>
+
+        </div>
+
+        <div class="dashboard-viewer">
+
+            <iframe
+                id="dashboard-frame"
+                src="dashboards/dashboard_google_charts_1_produccion_calidad.html">
+            </iframe>
+
+        </div>
+
+    </main>
+
+<script>
+
+function limpiarBotones(){
+
+    document
+    .querySelectorAll('.dash-btn')
+    .forEach(btn=>{
+        btn.classList.remove('active');
+    });
+
+}
+
+function cargarDashboard(ruta,titulo,boton){
+
+    limpiarBotones();
+
+    boton.classList.add('active');
+
+    document.getElementById(
+        'dashboard-title'
+    ).textContent=titulo;
+
+    document.getElementById(
+        'dashboard-frame'
+    ).src=ruta;
+
+}
+
+function cargarPowerBIDashboard(url,titulo,boton){
+
+    limpiarBotones();
+
+    boton.classList.add('active');
+
+    document.getElementById(
+        'dashboard-title'
+    ).textContent=titulo;
+
+    document.getElementById(
+        'dashboard-frame'
+    ).src=url;
+
+}
+
+function dashboardPendiente(boton){
+
+    limpiarBotones();
+
+    boton.classList.add('active');
+
+    document.getElementById(
+        'dashboard-title'
+    ).textContent='Dashboard D3JS #3 Pendiente';
+
+    document.getElementById(
+        'dashboard-frame'
+    ).src='about:blank';
+
+}
+
+</script>
+
+</body>
+</html>
